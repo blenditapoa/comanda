@@ -493,12 +493,33 @@ async function salvarFechamento() {
   render();
 }
 
+function fmtData(d) {
+  if (!d) return '—';
+  // Normaliza qualquer formato de data para DD/MM
+  try {
+    const s = typeof d === 'string' ? d : new Date(d).toISOString();
+    const parte = s.slice(0,10); // pega YYYY-MM-DD
+    return parte.slice(5).split('-').reverse().join('/');
+  } catch(e) { return String(d).slice(0,10); }
+}
+
+function fmtDataFull(d) {
+  if (!d) return '';
+  try {
+    const s = typeof d === 'string' ? d : new Date(d).toISOString();
+    return s.slice(0,10); // YYYY-MM-DD para o input date
+  } catch(e) { return ''; }
+}
+
 function renderUltimos() {
-  const last = [...S.fechamentos].sort((a,b)=>b.data.localeCompare(a.data)).slice(0,10);
+  const last = [...S.fechamentos]
+    .filter(f => f.id && (f.data || fatF(f) > 0))
+    .sort((a,b) => fmtDataFull(b.data).localeCompare(fmtDataFull(a.data)))
+    .slice(0,10);
   $('#ult_list').innerHTML = last.length
     ? `<table><thead><tr><th>Data</th><th>Caixa</th><th class="n">Total</th><th></th></tr></thead><tbody>`+
       last.map(f=>`<tr>
-        <td class="mini" style="font-family:'Space Mono'">${f.data.slice(5).split('-').reverse().join('/')}</td>
+        <td class="mini" style="font-family:'Space Mono'">${fmtData(f.data)}</td>
         <td>${f.caixa||'—'}</td>
         <td class="n">${money(fatF(f))}</td>
         <td style="white-space:nowrap">
