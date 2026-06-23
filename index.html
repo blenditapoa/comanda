@@ -164,9 +164,9 @@ summary{cursor:pointer;font-size:12.5px;color:var(--muted);font-weight:600}
 
 <script>
 // ============================================================
-//  CONFIG — após criar o Apps Script, cole a URL aqui:
+//  CONFIG — URL do Apps Script já configurada
 // ============================================================
-let SHEET_URL = localStorage.getItem('sheetUrl') || '';
+let SHEET_URL = 'https://script.google.com/macros/s/AKfycbzvKjoETBNeb7YDAE1b3qmKeuUbErqbue2SKwuwJyhDhDfHwweN4Oy76cfgAoEgVA-ERQ/exec';
 
 // ============================================================
 //  ESTADO
@@ -699,40 +699,41 @@ function renderClientes(){
 // ============================================================
 function renderConfig(){
   view.innerHTML=`
-  <div class="head"><div><div class="ey">Configurações</div><h1>Integração Google Sheets</h1>
-  <p>Configure uma vez — depois o sistema sincroniza automaticamente em todos os dispositivos.</p></div></div>
-  <div class="setup-banner">
-    <h3>📋 Passo a passo (5 minutos, só uma vez)</h3>
-    <ol class="setup-steps">
-      <li>Abra <b>script.google.com</b> e clique em <b>"Novo projeto"</b></li>
-      <li>Apague o código que aparecer e cole o conteúdo do arquivo <b>apps-script.js</b> que você baixou</li>
-      <li>Clique em <b>Salvar</b> (ícone de disquete ou Ctrl+S)</li>
-      <li>Clique em <b>"Implantar" → "Nova implantação"</b></li>
-      <li>Em "Tipo", selecione <b>"App da Web"</b></li>
-      <li>Em "Executar como": <b>Eu</b> · Em "Quem tem acesso": <b>Qualquer pessoa</b></li>
-      <li>Clique em <b>Implantar</b> e autorize (pode aparecer "App não verificado" — clique em "Avançado" e depois "Acessar")</li>
-      <li>Copie a <b>URL do app da web</b> gerada e cole abaixo</li>
-    </ol>
-  </div>
+  <div class="head"><div><div class="ey">Configurações</div><h1>Integração Google Sheets</h1></div></div>
   <div class="panel">
-    <h3 style="margin-bottom:14px">URL do Apps Script</h3>
-    <div class="field"><label>Cole a URL aqui</label>
-      <input class="url-inp" id="cfg_url" placeholder="https://script.google.com/macros/s/..." value="${SHEET_URL}">
+    <h3 style="margin-bottom:6px">Status da conexão</h3>
+    <div style="margin-bottom:16px;font-size:13px;color:var(--muted)">A URL do Apps Script está embutida no sistema. Para trocar, atualize o arquivo no GitHub.</div>
+    <div class="field"><label>URL atual</label>
+      <input class="url-inp" id="cfg_url" value="${SHEET_URL}" style="font-size:11px;color:var(--muted)">
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn" id="cfg_save">Salvar URL</button>
       <button class="btn ghost" id="cfg_test">Testar conexão</button>
     </div>
     <div id="cfg_result" style="margin-top:12px;font-size:13px;min-height:20px"></div>
+    <div class="hint" style="margin-top:16px">
+      Se precisar trocar a URL: edite o arquivo <b>index.html</b> no GitHub, procure por <b>SHEET_URL =</b> e substitua a URL. Depois sobe o arquivo novo.
+    </div>
   </div>`;
-  $('#cfg_save').onclick=()=>{SHEET_URL=$('#cfg_url').value.trim();localStorage.setItem('sheetUrl',SHEET_URL);toast('URL salva');setSyncStatus('none','URL salva — teste a conexão');};
+  $('#cfg_save').onclick=()=>{
+    SHEET_URL=$('#cfg_url').value.trim();
+    localStorage.setItem('sheetUrl', SHEET_URL);
+    toast('URL salva');
+  };
   $('#cfg_test').onclick=async()=>{
-    SHEET_URL=$('#cfg_url').value.trim();localStorage.setItem('sheetUrl',SHEET_URL);
+    SHEET_URL=$('#cfg_url').value.trim();
     $('#cfg_result').textContent='Testando...';
-    try{const r=await fetch(SHEET_URL+'?action=ping');const j=await r.json();
-      $('#cfg_result').innerHTML=j.ok?'<span style="color:var(--green)">✅ Conexão OK! O sistema vai sincronizar com o Sheets.</span>':'<span style="color:var(--red)">❌ Erro: '+j.error+'</span>';
+    try{
+      const r=await fetch(SHEET_URL+'?action=ping');
+      const j=await r.json();
+      $('#cfg_result').innerHTML=j.ok
+        ?'<span style="color:var(--green)">✅ Conexão OK!</span>'
+        :'<span style="color:var(--red)">❌ Erro: '+j.error+'</span>';
       if(j.ok){setSyncStatus('ok','Conectado');await sheetLoad();render();}
-    }catch(e){$('#cfg_result').innerHTML='<span style="color:var(--red)">❌ Não conseguiu conectar. Verifique a URL e as permissões de acesso.</span>';setSyncStatus('err');}
+    }catch(e){
+      $('#cfg_result').innerHTML='<span style="color:var(--red)">❌ Não conseguiu conectar.</span>';
+      setSyncStatus('err');
+    }
   };
 }
 
