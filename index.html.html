@@ -1,0 +1,697 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#16110c;--bg2:#1f1812;--panel:#241c14;--panel2:#2c2218;--line:#3a2d20;--line2:#4a3925;
+  --ember:#ec6a2c;--ember-soft:#f08a52;--gold:#e0a83e;--cream:#f4ecdf;--muted:#a89578;--muted2:#7d6c52;
+  --green:#6fae6a;--red:#d8584c;--blue:#5fa0c0;--r:14px;}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--cream);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Archivo Black',sans-serif;font-weight:400;letter-spacing:-.01em;margin:0}
+button,input,select{font-family:inherit;cursor:pointer}
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:8px}
+a{color:inherit}
+/* layout */
+.app{display:flex;min-height:100vh}
+.side{width:232px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;padding:18px 12px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 18px}
+.brand .mark{width:38px;height:38px;border-radius:11px;background:linear-gradient(150deg,var(--ember),var(--gold));
+  display:grid;place-items:center;font-size:20px;box-shadow:0 6px 18px rgba(236,106,44,.35)}
+.brand b{font-family:'Archivo Black';font-size:15px;line-height:1.05}
+.brand small{display:block;color:var(--muted2);font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:none;
+  color:var(--muted);padding:10px 11px;border-radius:9px;font-size:13.5px;font-weight:500;transition:.12s}
+.nav button .ic{width:18px;text-align:center}
+.nav button:hover{background:var(--panel);color:var(--cream)}
+.nav button.on{background:var(--panel2);color:var(--cream)}
+.nav button.on .ic{color:var(--ember)}
+.side-foot{margin-top:auto;padding-top:12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.side-foot button{background:none;border:1px solid var(--line2);color:var(--muted);padding:8px;border-radius:8px;font-size:11.5px}
+.side-foot button:hover{border-color:var(--red);color:var(--red)}
+.sync-btn{border-color:var(--line2) !important;color:var(--muted) !important}
+.sync-btn:hover{border-color:var(--blue) !important;color:var(--blue) !important}
+/* sync status dot */
+.sdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted2);margin-right:6px;vertical-align:middle}
+.sdot.ok{background:var(--green)} .sdot.err{background:var(--red)} .sdot.spin{background:var(--gold);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+/* setup banner */
+.setup-banner{background:rgba(224,168,62,.08);border:1px solid rgba(224,168,62,.35);border-radius:12px;
+  padding:16px 18px;margin-bottom:18px}
+.setup-banner h3{color:var(--gold);font-size:14px;margin-bottom:8px}
+.setup-banner p{color:var(--muted);font-size:12.5px;margin:0 0 10px;line-height:1.5}
+.setup-steps{counter-reset:step}
+.setup-steps li{counter-increment:step;list-style:none;position:relative;padding-left:28px;
+  font-size:12.5px;color:var(--muted);margin-bottom:6px;line-height:1.5}
+.setup-steps li::before{content:counter(step);position:absolute;left:0;top:0;width:18px;height:18px;
+  border-radius:50%;background:var(--gold);color:#231a0e;font-size:11px;font-weight:700;display:grid;place-items:center}
+.setup-steps li b{color:var(--cream)}
+.url-inp{width:100%;background:var(--bg);border:1px solid var(--line2);color:var(--cream);
+  padding:9px 12px;border-radius:8px;font-size:12.5px;outline:none;margin-top:6px}
+.url-inp:focus{border-color:var(--gold)}
+/* main */
+.main{flex:1;min-width:0;padding:24px 28px 60px}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+.head .ey{color:var(--ember);font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;margin-bottom:5px}
+.head h1{font-size:28px}
+.head p{color:var(--muted);margin:5px 0 0;font-size:13px;max-width:580px}
+.grid{display:grid;gap:14px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.kpi .lab{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+.kpi .val{font-family:'Space Mono';font-size:24px;font-weight:700;margin-top:7px;line-height:1}
+.kpi .sub{color:var(--muted2);font-size:11px;margin-top:6px;font-family:'Space Mono'}
+.kpi .val.em{color:var(--ember)}.kpi .val.gd{color:var(--gold)}.kpi .val.gr{color:var(--green)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.ph .sub{color:var(--muted2);font-size:12px;margin-top:3px}
+/* form */
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px;font-weight:600;letter-spacing:.02em}
+.inp{width:100%;background:var(--bg);border:1px solid var(--line2);color:var(--cream);
+  padding:9px 11px;border-radius:8px;font-size:13.5px;outline:none;transition:.12s}
+.inp:focus{border-color:var(--ember);box-shadow:0 0 0 3px rgba(236,106,44,.13)}
+.inp.mono{font-family:'Space Mono'}
+.row{display:grid;gap:10px}
+.c2{grid-template-columns:1fr 1fr}.c3{grid-template-columns:1fr 1fr 1fr}
+.slab{margin:14px 0 8px;font-size:11.5px;color:var(--ember);font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  padding-bottom:5px;border-bottom:1px solid var(--line)}
+.btn{background:var(--ember);color:#fff;border:none;padding:10px 16px;border-radius:9px;font-weight:600;font-size:13.5px;transition:.13s}
+.btn:hover{background:var(--ember-soft)}
+.btn.ghost{background:none;border:1px solid var(--line2);color:var(--cream)}
+.btn.ghost:hover{border-color:var(--ember);color:var(--ember)}
+.btn.gold{background:var(--gold);color:#231a0e}
+.btn.sm{padding:6px 11px;font-size:12px;border-radius:7px}
+.btn.wpp{background:#1f7a45;color:#fff}.btn.wpp:hover{background:#258a4f}
+/* conf box */
+.cline{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
+.cline:last-child{border-bottom:none}
+.cline span:last-child{font-family:'Space Mono';font-weight:700}
+.cline.tot span:first-child{color:var(--cream);font-weight:700}
+.diffbox{margin-top:10px;padding:11px 14px;border-radius:10px;text-align:center;font-size:13.5px}
+.diffbox.ok{background:rgba(111,174,106,.12);border:1px solid rgba(111,174,106,.4);color:var(--green)}
+.diffbox.bad{background:rgba(216,88,76,.12);border:1px solid rgba(216,88,76,.4)}
+.diffbox.bad b{font-family:'Space Mono';font-size:16px;color:#f0907f}
+/* table */
+table{width:100%;border-collapse:collapse}
+th{text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;padding:8px 9px;border-bottom:1px solid var(--line2)}
+td{padding:10px 9px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+td.n,th.n{text-align:right;font-family:'Space Mono'}
+.tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700}
+.tag.lo{background:rgba(216,88,76,.16);color:#f0907f}
+.tag.ok{background:rgba(111,174,106,.16);color:#8fd08a}
+.tag.vip{background:rgba(236,106,44,.18);color:#f5a274}
+.tag.inat{background:rgba(125,108,82,.2);color:#b8a487}
+.tag.fiel{background:rgba(95,160,192,.16);color:#8fc8e0}
+.tag.novo{background:rgba(224,168,62,.14);color:#f0c878}
+.chip{display:inline-flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--line2);
+  padding:4px 9px;border-radius:16px;font-size:11.5px;margin:2px 3px 2px 0}
+.chip b{color:var(--gold)}
+.px{cursor:pointer;color:var(--muted2);font-weight:700;padding:0 2px}.px:hover{color:var(--red)}
+.empty{color:var(--muted2);text-align:center;padding:24px;font-size:13px}
+.alert{background:rgba(216,88,76,.1);border:1px solid rgba(216,88,76,.35);border-radius:10px;
+  padding:12px 14px;display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.hint{background:rgba(95,160,192,.07);border:1px solid rgba(95,160,192,.25);border-radius:10px;
+  padding:11px 14px;font-size:12px;color:#aecfde;margin-top:12px;line-height:1.5}
+.srow{display:grid;grid-template-columns:1fr 100px 24px;gap:7px;align-items:center;margin-bottom:7px}
+.mini{font-size:12px;color:var(--muted)}
+.split{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;align-items:start}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--green);color:#0e1c0d;padding:12px 20px;border-radius:11px;font-weight:700;font-size:13.5px;
+  opacity:0;transition:.3s;box-shadow:0 10px 28px rgba(0,0,0,.4);z-index:99}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.err{background:var(--red);color:#fff}
+details{margin-top:8px;border-top:1px solid var(--line);padding-top:8px}
+summary{cursor:pointer;font-size:12.5px;color:var(--muted);font-weight:600}
+@media(max-width:860px){
+  .side{position:fixed;z-index:50;transform:translateX(-100%);transition:.2s;box-shadow:8px 0 40px rgba(0,0,0,.5)}
+  .side.open{transform:none}
+  .main{padding:16px 14px 60px}
+  .split{grid-template-columns:1fr}
+  .c3{grid-template-columns:1fr 1fr}
+  .mbtn{display:grid !important}
+}
+.mbtn{display:none;width:40px;height:40px;border-radius:9px;background:var(--panel);border:1px solid var(--line2);
+  place-items:center;color:var(--cream);font-size:17px;margin-bottom:12px}
+</style>
+
+<div class="app">
+  <aside class="side" id="side">
+    <div class="brand"><div class="mark">🍔</div><div><b>Comanda<br>Central</b><small>Hamburgueria</small></div></div>
+    <nav class="nav" id="nav">
+      <button data-tab="fechamento" class="on"><span class="ic">📝</span>Fechamento</button>
+      <button data-tab="balanco"><span class="ic">📊</span>Balanço</button>
+      <button data-tab="estoque"><span class="ic">📦</span>Estoque</button>
+      <button data-tab="fornecedores"><span class="ic">🚚</span>Fornecedores</button>
+      <button data-tab="clientes"><span class="ic">👥</span>Clientes</button>
+      <button data-tab="config"><span class="ic">⚙️</span>Configurações</button>
+    </nav>
+    <div class="side-foot">
+      <div style="font-size:11.5px;color:var(--muted);padding:4px 8px"><span class="sdot" id="sdot"></span><span id="slabel">Sem sync</span></div>
+      <button class="sync-btn" onclick="syncNow()" style="cursor:pointer">↻ Sincronizar agora</button>
+      <button id="resetBtn">↺ Resetar dados</button>
+    </div>
+  </aside>
+  <main class="main">
+    <button class="mbtn" id="menuBtn">☰</button>
+    <div id="view"></div>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+//  CONFIG — após criar o Apps Script, cole a URL aqui:
+// ============================================================
+let SHEET_URL = localStorage.getItem('sheetUrl') || '';
+
+// ============================================================
+//  ESTADO
+// ============================================================
+let S = { fechamentos:[], produtos:[], insumos:[], fornecedores:[], clientes:[] };
+const KEYS = ['fechamentos','produtos','insumos','fornecedores','clientes'];
+
+// ============================================================
+//  GOOGLE SHEETS SYNC
+// ============================================================
+let syncStatus = 'none'; // none | ok | err | loading
+function setSyncStatus(s, msg) {
+  syncStatus = s;
+  const dot = document.getElementById('sdot');
+  const lbl = document.getElementById('slabel');
+  if (!dot) return;
+  dot.className = 'sdot ' + (s==='ok'?'ok':s==='err'?'err':s==='loading'?'spin':'');
+  lbl.textContent = msg || (s==='ok'?'Sincronizado':s==='err'?'Erro sync':s==='loading'?'Sincronizando...':'Offline');
+}
+
+async function sheetLoad() {
+  if (!SHEET_URL) return false;
+  setSyncStatus('loading');
+  try {
+    const r = await fetch(SHEET_URL + '?action=load', {method:'GET'});
+    const j = await r.json();
+    if (j.ok && j.data) {
+      KEYS.forEach(k => { if (j.data[k] && j.data[k].length > 0) S[k] = j.data[k]; });
+      setSyncStatus('ok', 'Atualizado ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
+      return true;
+    } else { setSyncStatus('err', 'Erro: ' + (j.error||'?')); return false; }
+  } catch(e) { setSyncStatus('err', 'Sem conexão'); return false; }
+}
+
+async function sheetSave() {
+  if (!SHEET_URL) return;
+  setSyncStatus('loading');
+  try {
+    const r = await fetch(SHEET_URL, { method:'POST',
+      body: JSON.stringify(S),
+      headers:{'Content-Type':'application/json'} });
+    const j = await r.json();
+    if (j.ok) setSyncStatus('ok', 'Salvo ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
+    else setSyncStatus('err', 'Erro ao salvar');
+  } catch(e) { setSyncStatus('err', 'Sem conexão'); }
+}
+
+async function syncNow() {
+  const ok = await sheetLoad();
+  if (ok) render();
+}
+
+// ============================================================
+//  UTILS
+// ============================================================
+const $ = s => document.querySelector(s);
+const money = n => 'R$ ' + (Number(n)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const uid = () => Math.random().toString(36).slice(2,9);
+const insumo = id => S.insumos.find(i=>i.id===id);
+const produto = id => S.produtos.find(p=>p.id===id);
+function toast(msg, err) {
+  const t = $('#toast'); t.textContent = msg;
+  t.className = 'toast show' + (err?' err':'');
+  clearTimeout(t._t); t._t = setTimeout(()=>t.className='toast', 2500);
+}
+// CAMPOS DA CONFERÊNCIA (lógica corrigida conforme comanda real)
+const CONF_CAMPOS = [
+  {id:'pg_cartao',     label:'Cartão'},
+  {id:'pg_cartaocpf',  label:'Cartão CPF'},
+  {id:'pg_online',     label:'Pago Online'},
+  {id:'pg_voucher',    label:'Online / Voucher'},
+  {id:'pg_onlinepix',  label:'Online via PIX'},
+  {id:'pg_dinheiro',   label:'Dinheiro'},
+  {id:'pg_motoboy',    label:'Motoboy'},
+  {id:'pg_colaborador',label:'Colaborador'},
+];
+function lerConf() {
+  const r = {};
+  CONF_CAMPOS.forEach(c => r[c.id] = +($('#'+c.id)?.value||0) || 0);
+  return r;
+}
+function somaConf(r) { return CONF_CAMPOS.reduce((a,c)=>a+(r[c.id]||0), 0); }
+function custoProd(p) { return (p.ficha||[]).reduce((a,[iid,q])=>{const i=insumo(iid);return a+(i?i.custo*q:0);}, 0); }
+function cmvFech(f) { return (f.vendas||[]).reduce((a,v)=>{const p=produto(v.pid);return a+(p?custoProd(p)*v.qtd:0);}, 0); }
+function fatF(f) { return +f.totalVendas||0; }
+
+// ============================================================
+//  SEED
+// ============================================================
+function seed() {
+  S.insumos = [
+    {id:'i1',nome:'Pão brioche',un:'un',qtd:42,min:60,custo:1.20},
+    {id:'i2',nome:'Hambúrguer 150g',un:'un',qtd:38,min:80,custo:3.40},
+    {id:'i3',nome:'Queijo cheddar',un:'fatia',qtd:120,min:100,custo:0.55},
+    {id:'i4',nome:'Bacon',un:'g',qtd:1800,min:1500,custo:0.045},
+    {id:'i5',nome:'Batata congelada',un:'g',qtd:9000,min:6000,custo:0.018},
+    {id:'i6',nome:'Refrigerante lata',un:'un',qtd:54,min:48,custo:2.10},
+  ];
+  S.produtos = [
+    {id:'p1',nome:'Cheddar Bacon',preco:32,ficha:[['i1',1],['i2',1],['i3',2],['i4',40]]},
+    {id:'p2',nome:'Smash Duplo',preco:36,ficha:[['i1',1],['i2',2],['i3',2]]},
+    {id:'p3',nome:'Batata G',preco:18,ficha:[['i5',300]]},
+    {id:'p4',nome:'Refri lata',preco:8,ficha:[['i6',1]]},
+  ];
+  S.fornecedores = [
+    {id:'f1',nome:'Frigorífico BomBoi',whatsapp:'5547999990001',insumos:['i2','i4']},
+    {id:'f2',nome:'Padaria do Zé',whatsapp:'5547999990002',insumos:['i1']},
+    {id:'f3',nome:'Distribuidora Sul',whatsapp:'5547999990003',insumos:['i3','i5','i6']},
+  ];
+  const D=n=>{const x=new Date();x.setDate(x.getDate()-n);return x.toISOString().slice(0,10);};
+  S.clientes = [
+    {id:'c1',nome:'Marina Alves',whatsapp:'5547988880001',compras:[{data:D(2),valor:64},{data:D(9),valor:50},{data:D(16),valor:72},{data:D(25),valor:40}]},
+    {id:'c2',nome:'Rafael Costa',whatsapp:'5547988880002',compras:[{data:D(1),valor:90},{data:D(5),valor:36},{data:D(12),valor:68}]},
+    {id:'c3',nome:'Juliana Reis',whatsapp:'5547988880003',compras:[{data:D(48),valor:54},{data:D(70),valor:32}]},
+    {id:'c4',nome:'Pedro Lima',whatsapp:'5547988880004',compras:[{data:D(60),valor:120}]},
+    {id:'c5',nome:'Bea Souza',whatsapp:'5547988880005',compras:[{data:D(3),valor:44},{data:D(8),valor:44},{data:D(14),valor:44},{data:D(21),valor:44}]},
+  ];
+  // Exemplo 20/06 baseado na comanda real
+  S.fechamentos = [
+    {id:'fc01',data:D(2),caixa:'Ana',
+     conf:{pg_cartao:1980.40,pg_cartaocpf:0,pg_online:210.00,pg_voucher:0,pg_onlinepix:880.50,pg_dinheiro:181.20,pg_motoboy:0,pg_colaborador:38},
+     totalVendas:3290.10,trocoInicio:120,trocoFinal:90,motoboyRepasse:128,motoboyPix:0,saidas:[],
+     vendas:[{pid:'p1',qtd:9},{pid:'p2',qtd:7},{pid:'p3',qtd:12},{pid:'p4',qtd:14}],obs:''},
+    {id:'fc02',data:D(1),caixa:'Ana',
+     conf:{pg_cartao:2240.00,pg_cartaocpf:0,pg_online:140.00,pg_voucher:25,pg_onlinepix:1010.00,pg_dinheiro:0,pg_motoboy:260,pg_colaborador:45},
+     totalVendas:3720.00,trocoInicio:100,trocoFinal:100,motoboyRepasse:190,motoboyPix:260,saidas:[],
+     vendas:[{pid:'p1',qtd:11},{pid:'p2',qtd:9},{pid:'p3',qtd:15},{pid:'p4',qtd:18}],obs:'Motoboy via PIX'},
+    {id:'fc03',data:D(0),caixa:'Ana',
+     conf:{pg_cartao:2112.86,pg_cartaocpf:0,pg_online:169.54,pg_voucher:19.09,pg_onlinepix:951.79,pg_dinheiro:0,pg_motoboy:237,pg_colaborador:40.50},
+     totalVendas:3530.78,trocoInicio:114.80,trocoFinal:80.80,motoboyRepasse:167,motoboyPix:0,saidas:[],
+     vendas:[{pid:'p1',qtd:10},{pid:'p2',qtd:8},{pid:'p3',qtd:13},{pid:'p4',qtd:16}],obs:'Comanda 20/06'},
+  ];
+}
+
+// ============================================================
+//  NAV
+// ============================================================
+let tab = 'fechamento';
+$('#nav').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b||!b.dataset.tab) return;
+  tab = b.dataset.tab;
+  document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('on',x===b));
+  $('#side').classList.remove('open'); render();
+});
+$('#menuBtn').addEventListener('click',()=>$('#side').classList.toggle('open'));
+$('#resetBtn').addEventListener('click', async()=>{
+  if(!confirm('Resetar todos os dados de exemplo?')) return;
+  seed(); await sheetSave(); toast('Dados resetados'); render();
+});
+
+function render() {
+  ({fechamento:renderFechamento,balanco:renderBalanco,estoque:renderEstoque,
+    fornecedores:renderFornecedores,clientes:renderClientes,config:renderConfig}[tab])();
+}
+
+// ============================================================
+//  FECHAMENTO
+// ============================================================
+let draftSaidas = [], draftVendas = [];
+
+function renderFechamento() {
+  if (!draftVendas.length) draftVendas = S.produtos.map(p=>({pid:p.id,qtd:0}));
+  const hoje = new Date().toISOString().slice(0,10);
+  view.innerHTML = `
+  <div class="head"><div><div class="ey">Final de turno</div><h1>Fechamento de caixa</h1>
+  <p>Some os campos abaixo — o total precisa bater com o <b>Total de vendas</b>. O sistema confere na hora.</p></div></div>
+  <div class="split">
+    <div class="panel">
+      <div class="ph"><h3>Comanda do dia</h3></div>
+      <div class="row c2">
+        <div class="field"><label>Data</label><input class="inp" type="date" id="f_data" value="${hoje}"></div>
+        <div class="field"><label>Caixa</label><input class="inp" id="f_caixa" placeholder="quem fechou"></div>
+      </div>
+      <div class="slab">Recebimentos do dia</div>
+      <div class="row c2">
+        ${CONF_CAMPOS.map(c=>`<div class="field"><label>${c.label}</label><input class="inp mono" type="number" id="${c.id}" placeholder="0"></div>`).join('')}
+      </div>
+      <div class="slab">Total e conferência</div>
+      <div class="field"><label>Total de vendas (sistema/maquininha)</label>
+        <input class="inp mono" type="number" id="f_total" placeholder="0" style="font-size:18px;padding:12px;border-color:var(--line2)">
+      </div>
+      <div id="conf_box"></div>
+      <div class="slab">Informações adicionais</div>
+      <div class="row c2">
+        <div class="field"><label>Troco início</label><input class="inp mono" type="number" id="f_ti" placeholder="0"></div>
+        <div class="field"><label>Troco final</label><input class="inp mono" type="number" id="f_tf" placeholder="0"></div>
+      </div>
+      <div class="row c2">
+        <div class="field"><label>Repasse fretes ao motoboy</label><input class="inp mono" type="number" id="f_mrep" placeholder="0"></div>
+        <div class="field"><label>Motoboy pago via PIX (conta)</label><input class="inp mono" type="number" id="f_mpix" placeholder="0"></div>
+      </div>
+      <div id="saida_box"></div>
+      <button class="btn ghost sm" id="addSaida" style="margin:4px 0 12px">+ outra saída em dinheiro</button>
+      <div class="field"><label>Observações</label><input class="inp" id="f_obs" placeholder="ocorrências do turno"></div>
+      <details><summary>Vendas por produto (opcional — para baixa de estoque)</summary><div id="vendas_box" style="margin-top:8px"></div></details>
+      <button class="btn" id="salvar_btn" style="width:100%;margin-top:16px;padding:13px">Salvar fechamento</button>
+    </div>
+    <div>
+      <div class="panel" style="margin-bottom:14px">
+        <div class="ph"><h3>Conferência</h3><div class="sub">Atualiza ao digitar</div></div>
+        <div id="conf_resumo"></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><h3>Últimos fechamentos</h3></div>
+        <div id="ult_list"></div>
+      </div>
+    </div>
+  </div>`;
+
+  renderVendasBox(); renderSaidaBox(); atualizarConf();
+  [...document.querySelectorAll('.inp.mono')].forEach(el=>el.addEventListener('input', atualizarConf));
+  $('#f_total').addEventListener('input', atualizarConf);
+  $('#addSaida').onclick = ()=>{draftSaidas.push({desc:'',valor:''});renderSaidaBox();};
+  $('#salvar_btn').onclick = salvarFechamento;
+  renderUltimos();
+}
+
+function atualizarConf() {
+  const r = lerConf();
+  const soma = somaConf(r);
+  const total = +$('#f_total')?.value || 0;
+  const diff = total - soma;
+  const ok = Math.abs(diff) < 0.02;
+
+  // mini-linhas na caixa de conf acima do botão
+  $('#conf_box').innerHTML = `<div class="diffbox ${ok?'ok':'bad'}" style="margin-bottom:10px">
+    ${ok ? `✅ Conferência OK — soma = ${money(soma)}` :
+    `<div>Soma dos recebimentos: <b style="font-family:'Space Mono'">${money(soma)}</b></div>
+     <div style="margin-top:4px">Total de vendas: <b style="font-family:'Space Mono'">${money(total)}</b></div>
+     <div style="margin-top:6px">⚠️ Diferença: <b>${money(diff)}</b></div>`}
+  </div>`;
+
+  // painel lateral
+  $('#conf_resumo').innerHTML =
+    CONF_CAMPOS.map(c=>`<div class="cline"><span>${c.label}</span><span>${money(r[c.id]||0)}</span></div>`).join('')+
+    `<div class="cline tot"><span>Soma total</span><span style="color:var(--ember)">${money(soma)}</span></div>
+     <div class="cline tot"><span>Total vendas</span><span>${money(total)}</span></div>
+     <div class="diffbox ${ok?'ok':'bad'}" style="margin-top:10px">
+       ${ok?`✅ Caixa confere`:`⚠️ Diferença: <b>${money(diff)}</b>`}
+     </div>`;
+}
+
+function renderVendasBox() {
+  const box = $('#vendas_box');
+  box.innerHTML = S.produtos.map(p=>{
+    const dv = draftVendas.find(v=>v.pid===p.id)||{qtd:0};
+    return `<div class="srow" style="grid-template-columns:1fr 75px 20px">
+      <div class="mini">${p.nome}</div>
+      <input class="inp mono" type="number" min="0" data-pid="${p.id}" value="${dv.qtd||''}" placeholder="0">
+      <span class="mini">un</span></div>`;
+  }).join('') || '<div class="mini" style="color:var(--muted2)">Sem produtos cadastrados</div>';
+  box.querySelectorAll('input').forEach(el=>el.addEventListener('input',e=>{
+    const pid=e.target.dataset.pid,q=+e.target.value||0;
+    const v=draftVendas.find(x=>x.pid===pid); if(v)v.qtd=q; else draftVendas.push({pid,qtd:q});
+  }));
+}
+
+function renderSaidaBox() {
+  const box = $('#saida_box');
+  box.innerHTML = draftSaidas.map((s,i)=>`<div class="srow"><input class="inp" data-i="${i}" data-k="desc" value="${s.desc}" placeholder="descrição">
+    <input class="inp mono" type="number" data-i="${i}" data-k="valor" value="${s.valor}" placeholder="0">
+    <span class="px" data-del="${i}">✕</span></div>`).join('');
+  box.querySelectorAll('input').forEach(el=>el.addEventListener('input',e=>{draftSaidas[+e.target.dataset.i][e.target.dataset.k]=e.target.value;}));
+  box.querySelectorAll('[data-del]').forEach(x=>x.onclick=()=>{draftSaidas.splice(+x.dataset.del,1);renderSaidaBox();});
+}
+
+async function salvarFechamento() {
+  const r = lerConf();
+  const soma = somaConf(r);
+  const total = +$('#f_total').value||0;
+  if (soma <= 0 && total <= 0) { toast('Preencha os valores do turno', true); return; }
+  const f = {
+    id:uid(), data:$('#f_data').value, caixa:$('#f_caixa').value,
+    conf:r, totalVendas:total,
+    trocoInicio:+$('#f_ti').value||0, trocoFinal:+$('#f_tf').value||0,
+    motoboyRepasse:+$('#f_mrep').value||0, motoboyPix:+$('#f_mpix').value||0,
+    saidas:draftSaidas.filter(s=>s.valor).map(s=>({desc:s.desc,valor:+s.valor})),
+    vendas:draftVendas.filter(v=>v.qtd>0).map(v=>({pid:v.pid,qtd:v.qtd})),
+    obs:$('#f_obs').value
+  };
+  // baixa de estoque
+  f.vendas.forEach(v=>{const p=produto(v.pid);if(p)(p.ficha||[]).forEach(([iid,q])=>{const i=insumo(iid);if(i)i.qtd=Math.max(0,i.qtd-q*v.qtd);});});
+  S.fechamentos.push(f);
+  await sheetSave();
+  draftSaidas=[]; draftVendas=[];
+  toast('Fechamento salvo e enviado para o Sheets');
+  render();
+}
+
+function renderUltimos() {
+  const last = [...S.fechamentos].sort((a,b)=>b.data.localeCompare(a.data)).slice(0,6);
+  $('#ult_list').innerHTML = last.length
+    ? `<table><thead><tr><th>Data</th><th>Caixa</th><th class="n">Total vendas</th></tr></thead><tbody>`+
+      last.map(f=>`<tr><td class="mini" style="font-family:'Space Mono'">${f.data.slice(5).split('-').reverse().join('/')}</td>
+        <td>${f.caixa||'—'}</td><td class="n">${money(fatF(f))}</td></tr>`).join('')+'</tbody></table>'
+    : '<div class="empty">Nenhum fechamento ainda</div>';
+}
+
+// ============================================================
+//  BALANÇO
+// ============================================================
+let _charts = {};
+function renderBalanco() {
+  const fs = [...S.fechamentos].sort((a,b)=>a.data.localeCompare(b.data));
+  if (!fs.length) { view.innerHTML='<div class="head"><div><div class="ey">Análise</div><h1>Balanço</h1></div></div><div class="panel"><div class="empty">Salve fechamentos para ver o balanço.</div></div>'; return; }
+  const cut = new Date(); cut.setDate(cut.getDate()-30);
+  const win = fs.filter(f=>f.data >= cut.toISOString().slice(0,10));
+  const fatT = win.reduce((a,f)=>a+fatF(f), 0);
+  const cmvT = win.reduce((a,f)=>a+cmvFech(f), 0);
+  const motT = win.reduce((a,f)=>a+(+(f.conf?.pg_motoboy||0)), 0);
+  const colT = win.reduce((a,f)=>a+(+(f.conf?.pg_colaborador||0)), 0);
+  const mix = {Cartão:0,Online:0,'PIX Online':0,Dinheiro:0,Motoboy:0,Colaborador:0};
+  win.forEach(f=>{const c=f.conf||{};
+    mix.Cartão+=(+c.pg_cartao||0)+(+c.pg_cartaocpf||0);
+    mix.Online+=(+c.pg_online||0)+(+c.pg_voucher||0);
+    mix['PIX Online']+=(+c.pg_onlinepix||0);
+    mix.Dinheiro+=(+c.pg_dinheiro||0);
+    mix.Motoboy+=(+c.pg_motoboy||0);
+    mix.Colaborador+=(+c.pg_colaborador||0);
+  });
+  const prodMap={};
+  win.forEach(f=>(f.vendas||[]).forEach(v=>{prodMap[v.pid]=(prodMap[v.pid]||0)+v.qtd;}));
+  const topProd = Object.entries(prodMap).map(([pid,q])=>({p:produto(pid),q})).filter(x=>x.p).sort((a,b)=>b.q-a.q);
+
+  view.innerHTML = `
+  <div class="head"><div><div class="ey">Últimos 30 dias</div><h1>Balanço</h1></div></div>
+  <div class="grid kpis" style="margin-bottom:14px">
+    <div class="card kpi"><div class="lab">Total de Vendas</div><div class="val em">${money(fatT)}</div><div class="sub">${win.length} dias</div></div>
+    <div class="card kpi"><div class="lab">Média/dia</div><div class="val">${money(win.length?fatT/win.length:0)}</div></div>
+    <div class="card kpi"><div class="lab">Motoboy</div><div class="val gd">${money(motT)}</div><div class="sub">${fatT?(motT/fatT*100).toFixed(1):0}% do total</div></div>
+    <div class="card kpi"><div class="lab">Colaborador</div><div class="val">${money(colT)}</div></div>
+    ${cmvT?`<div class="card kpi"><div class="lab">CMV (fichas)</div><div class="val">${money(cmvT)}</div><div class="sub">${fatT?(cmvT/fatT*100).toFixed(0):0}%</div></div>`:''}
+  </div>
+  <div class="split" style="margin-bottom:14px">
+    <div class="panel"><div class="ph"><h3>Total de vendas por dia</h3></div><canvas id="ch1" height="150"></canvas></div>
+    <div class="panel"><div class="ph"><h3>Mix de recebimentos</h3></div><canvas id="ch2" height="150"></canvas></div>
+  </div>
+  ${topProd.length?`<div class="panel"><div class="ph"><h3>Produtos (quando lançados no fechamento)</h3></div>
+    <table><thead><tr><th>Produto</th><th class="n">Qtd</th><th class="n">Receita</th><th class="n">Custo un.</th><th class="n">Margem un.</th></tr></thead><tbody>
+    ${topProd.map(({p,q})=>{const cu=custoProd(p);return `<tr><td>${p.nome}</td><td class="n">${q}</td><td class="n">${money(p.preco*q)}</td><td class="n">${money(cu)}</td><td class="n" style="color:var(--green)">${money(p.preco-cu)}</td></tr>`;}).join('')}
+    </tbody></table></div>`:''}`;
+
+  const cv = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  Chart.defaults.color=cv('--muted'); Chart.defaults.font.family='Inter'; Chart.defaults.borderColor=cv('--line');
+  Object.values(_charts).forEach(c=>{try{c.destroy()}catch(e){}});
+  const days = win.map(f=>f.data.slice(5).split('-').reverse().join('/'));
+  _charts.a = new Chart($('#ch1'),{type:'bar',data:{labels:days,datasets:[{label:'Total Vendas',data:win.map(fatF),backgroundColor:cv('--ember'),borderRadius:4}]},
+    options:{plugins:{legend:{display:false}},scales:{y:{grid:{color:cv('--line')}},x:{grid:{display:false}}}}});
+  _charts.b = new Chart($('#ch2'),{type:'doughnut',data:{labels:Object.keys(mix),datasets:[{data:Object.values(mix),backgroundColor:[cv('--blue'),cv('--gold'),cv('--ember'),cv('--green'),cv('--red'),cv('--muted2')],borderWidth:0}]},
+    options:{cutout:'62%',plugins:{legend:{position:'right',labels:{boxWidth:10,padding:8}}}}});
+}
+
+// ============================================================
+//  ESTOQUE
+// ============================================================
+function renderEstoque() {
+  const low = S.insumos.filter(i=>i.qtd<i.min);
+  view.innerHTML = `
+  <div class="head"><div><div class="ey">Insumos</div><h1>Estoque</h1>
+  <p>Registre compras para atualizar o custo pelo último valor pago. A baixa é automática quando você lança vendas por produto no fechamento.</p></div></div>
+  ${low.length?`<div class="alert"><span>⚠️</span><div><b>${low.length} ${low.length>1?'itens':'item'} abaixo do mínimo</b> — vá em Fornecedores para disparar cotação.</div></div>`:''}
+  <div class="split">
+    <div class="panel"><div class="ph"><h3>Itens em estoque</h3><button class="btn ghost sm" id="addIns">+ insumo</button></div>
+      <table><thead><tr><th>Item</th><th class="n">Qtd</th><th class="n">Mín.</th><th class="n">Custo/un</th><th></th></tr></thead>
+      <tbody id="ins_body"></tbody></table></div>
+    <div>
+      <div class="panel" style="margin-bottom:14px"><div class="ph"><h3>Registrar compra</h3></div>
+        <div class="field"><label>Item</label><select class="inp" id="c_item">${S.insumos.map(i=>`<option value="${i.id}">${i.nome}</option>`).join('')}</select></div>
+        <div class="row c2">
+          <div class="field"><label>Quantidade</label><input class="inp mono" type="number" id="c_qtd" placeholder="0"></div>
+          <div class="field"><label>Valor total da nota</label><input class="inp mono" type="number" id="c_val" placeholder="R$"></div>
+        </div>
+        <div class="mini" id="c_prev" style="margin:-4px 0 8px;min-height:16px"></div>
+        <button class="btn gold" id="regComp" style="width:100%">Lançar compra</button>
+        <div class="hint">Importação de XML da NF-e é fase 2. Lance o total da nota e o custo unitário é recalculado automaticamente.</div>
+      </div>
+      <div class="panel"><div class="ph"><h3>Ficha técnica</h3></div><div id="ficha_box"></div></div>
+    </div>
+  </div>`;
+  renderInsBody(); renderFicha();
+  $('#addIns').onclick = addInsumo;
+  $('#regComp').onclick = regCompra;
+  const prev = ()=>{const i=insumo($('#c_item').value),q=+$('#c_qtd').value,v=+$('#c_val').value;$('#c_prev').textContent=(i&&q&&v)?`Novo custo: ${money(v/q)} (era ${money(i.custo)})`:'';};
+  ['c_item','c_qtd','c_val'].forEach(id=>$('#'+id).addEventListener('input',prev));
+}
+function renderInsBody(){$('#ins_body').innerHTML=S.insumos.map(i=>`<tr><td>${i.nome}<div class="mini">${i.un}</div></td>
+  <td class="n" style="color:${i.qtd<i.min?'var(--red)':'var(--cream)'}">${i.qtd}</td><td class="n">${i.min}</td><td class="n">${money(i.custo)}</td>
+  <td><span class="tag ${i.qtd<i.min?'lo':'ok'}">${i.qtd<i.min?'baixo':'ok'}</span></td></tr>`).join('')||'<tr><td colspan=5><div class="empty">Sem insumos</div></td></tr>';}
+async function addInsumo(){const nome=prompt('Nome:');if(!nome)return;const un=prompt('Unidade:','un')||'un';const min=+prompt('Mínimo:','0');const custo=+prompt('Custo unitário (R$):','0');
+  S.insumos.push({id:uid(),nome,un,qtd:0,min,custo});await sheetSave();toast('Insumo cadastrado');renderEstoque();}
+async function regCompra(){const i=insumo($('#c_item').value);const q=+$('#c_qtd').value,v=+$('#c_val').value;if(!i||q<=0||v<=0){toast('Preencha item, quantidade e valor',true);return;}
+  i.qtd+=q;i.custo=v/q;await sheetSave();toast(`${i.nome}: +${q} · custo ${money(i.custo)}`);renderEstoque();}
+function renderFicha(){$('#ficha_box').innerHTML=S.produtos.map(p=>`<div style="padding:9px 0;border-bottom:1px solid var(--line)">
+  <div style="display:flex;justify-content:space-between"><b style="font-size:13px">${p.nome}</b><span class="mini">custo ${money(custoProd(p))} · venda ${money(p.preco)}</span></div>
+  <div style="margin-top:4px">${(p.ficha||[]).map(([iid,q])=>{const i=insumo(iid);return i?`<span class="chip">${i.nome} <b>${q}${i.un}</b></span>`:'';}).join('')||'<span class="mini" style="color:var(--muted2)">sem ficha</span>'}</div>
+  </div>`).join('')||'<div class="empty">Sem produtos</div>';}
+
+// ============================================================
+//  FORNECEDORES
+// ============================================================
+function renderFornecedores(){
+  const low=S.insumos.filter(i=>i.qtd<i.min);
+  view.innerHTML=`
+  <div class="head"><div><div class="ey">Compras</div><h1>Fornecedores</h1></div></div>
+  ${low.length?`<div class="panel" style="margin-bottom:14px"><div class="ph"><h3 style="color:var(--ember)">🔔 Itens abaixo do mínimo — cotar agora</h3></div>
+    <table><thead><tr><th>Item</th><th class="n">Repor</th><th>Enviar cotação</th></tr></thead><tbody>
+    ${low.map(i=>{const need=Math.max(i.min-i.qtd,0);const sups=S.fornecedores.filter(f=>(f.insumos||[]).includes(i.id));
+      return `<tr><td>${i.nome}</td><td class="n">${need} ${i.un}</td><td>${sups.length
+        ?sups.map(f=>{const msg=encodeURIComponent(`Olá ${f.nome}! Preciso cotar: ${need} ${i.un} de ${i.nome}. Qual o preço e prazo de entrega?`);
+          return `<a class="btn wpp sm" style="text-decoration:none;display:inline-block;margin:2px" target="_blank" href="https://wa.me/${f.whatsapp}?text=${msg}">📲 ${f.nome}</a>`;}).join('')
+        :'<span class="mini" style="color:var(--muted2)">sem fornecedor cadastrado</span>'}</td></tr>`;}).join('')}
+    </tbody></table><div class="hint">Disparo automático sem clicar é fase 2 (WhatsApp Business API).</div></div>`:''}
+  <div class="panel"><div class="ph"><h3>Fornecedores</h3><button class="btn ghost sm" id="addForn">+ fornecedor</button></div>
+    <table><thead><tr><th>Nome</th><th>WhatsApp</th><th>Itens</th><th></th></tr></thead><tbody id="forn_body"></tbody></table></div>`;
+  $('#forn_body').innerHTML=S.fornecedores.map(f=>`<tr><td><b>${f.nome}</b></td><td class="mini" style="font-family:'Space Mono'">${f.whatsapp}</td>
+    <td>${(f.insumos||[]).map(id=>{const i=insumo(id);return i?`<span class="chip">${i.nome}</span>`:''}).join('')||'<span class="mini">—</span>'}</td>
+    <td class="n"><span class="px" data-del="${f.id}">✕</span></td></tr>`).join('')||'<tr><td colspan=4><div class="empty">Sem fornecedores</div></td></tr>';
+  $('#addForn').onclick=addForn;
+  document.querySelectorAll('#forn_body [data-del]').forEach(x=>x.onclick=async()=>{S.fornecedores=S.fornecedores.filter(f=>f.id!==x.dataset.del);await sheetSave();renderFornecedores();});
+}
+async function addForn(){const nome=prompt('Nome do fornecedor:');if(!nome)return;const wpp=(prompt('WhatsApp (com 55 e DDD, apenas números):')||'').replace(/\D/g,'');if(!wpp){toast('WhatsApp inválido',true);return;}
+  const lista=S.insumos.map((i,n)=>`${n+1}. ${i.nome}`).join('\n');const sel=prompt('Quais itens ele vende? (números separados por vírgula)\n'+lista,'');
+  const idxs=(sel||'').split(',').map(s=>+s.trim()-1).filter(n=>n>=0&&n<S.insumos.length);
+  S.fornecedores.push({id:uid(),nome,whatsapp:wpp,insumos:idxs.map(n=>S.insumos[n].id)});await sheetSave();toast('Fornecedor cadastrado');renderFornecedores();}
+
+// ============================================================
+//  CLIENTES
+// ============================================================
+function diasDesde(d){return Math.floor((Date.now()-new Date(d).getTime())/864e5);}
+function rfm(c){const cs=c.compras||[];const freq=cs.length;const mon=cs.reduce((a,x)=>a+(+x.valor||0),0);
+  const ultima=cs.length?cs.map(x=>x.data).sort().slice(-1)[0]:null;const rec=ultima?diasDesde(ultima):9999;
+  let seg='novo';if(freq>=4&&rec<=20)seg='vip';else if(rec>30)seg='inativo';else if(freq>=2)seg='fiel';
+  return{freq,mon,rec,ultima,seg,ticket:freq?mon/freq:0};}
+function renderClientes(){
+  const lista=S.clientes.map(c=>({c,...rfm(c)})).sort((a,b)=>b.mon-a.mon);
+  const vip=lista.filter(x=>x.seg==='vip');const inat=lista.filter(x=>x.seg==='inativo');const ltv=lista.reduce((a,x)=>a+x.mon,0);
+  view.innerHTML=`
+  <div class="head"><div><div class="ey">Base & fidelização</div><h1>Clientes</h1></div></div>
+  <div class="grid kpis" style="margin-bottom:14px">
+    <div class="card kpi"><div class="lab">Clientes</div><div class="val">${lista.length}</div></div>
+    <div class="card kpi"><div class="lab">VIPs</div><div class="val em">${vip.length}</div></div>
+    <div class="card kpi"><div class="lab">Inativos +30d</div><div class="val" style="color:var(--red)">${inat.length}</div></div>
+    <div class="card kpi"><div class="lab">LTV total</div><div class="val gd">${money(ltv)}</div></div>
+  </div>
+  ${inat.length?`<div class="panel" style="margin-bottom:14px"><div class="ph"><h3 style="color:var(--ember)">🎯 Reativação</h3></div>
+    <table><thead><tr><th>Cliente</th><th class="n">Última</th><th class="n">Total gasto</th><th>Ação</th></tr></thead><tbody>
+    ${inat.map(({c,rec,mon})=>{const cup='VOLTA15';const msg=encodeURIComponent(`Oi ${c.nome.split(' ')[0]}! Sentimos sua falta 🍔 Use o cupom ${cup} e ganhe 15% OFF no próximo pedido. Válido essa semana!`);
+      return `<tr><td><b>${c.nome}</b></td><td class="n">${rec}d</td><td class="n">${money(mon)}</td><td><a class="btn wpp sm" style="text-decoration:none;display:inline-block" target="_blank" href="https://wa.me/${c.whatsapp}?text=${msg}">📲 Cupom</a></td></tr>`;}).join('')}
+    </tbody></table></div>`:''}
+  <div class="split">
+    <div class="panel"><div class="ph"><h3>Ranking</h3></div>
+      <table><thead><tr><th>Cliente</th><th class="n">Compras</th><th class="n">Total</th><th>Seg.</th></tr></thead><tbody>
+      ${lista.map(({c,freq,mon,seg})=>`<tr><td><b>${c.nome}</b></td><td class="n">${freq}</td><td class="n">${money(mon)}</td>
+        <td><span class="tag ${seg}">${seg}</span></td></tr>`).join('')||'<tr><td colspan=4><div class="empty">Sem clientes</div></td></tr>'}
+      </tbody></table></div>
+    <div>
+      <div class="panel" style="margin-bottom:14px"><div class="ph"><h3>Adicionar cliente / compra</h3></div>
+        <div class="field"><label>Nome</label><input class="inp" id="cl_nome" placeholder="nome"></div>
+        <div class="field"><label>WhatsApp</label><input class="inp mono" id="cl_wpp" placeholder="5547900000000"></div>
+        <div class="field"><label>Valor da compra (opcional)</label><input class="inp mono" type="number" id="cl_val" placeholder="R$"></div>
+        <button class="btn" id="addCli" style="width:100%">Adicionar</button></div>
+      <div class="panel"><div class="ph"><h3>Estratégias de fidelização</h3></div>
+        <ul style="margin:0;padding-left:16px;font-size:12.5px;color:var(--muted);line-height:1.8">
+          <li><b style="color:var(--cream)">Clube do 10º</b>: a cada 9 compras, a 10ª com brinde</li>
+          <li><b style="color:var(--cream)">VIPs</b>: acesso antecipado a lançamentos</li>
+          <li><b style="color:var(--cream)">Aniversário</b>: cupom no mês do cliente</li>
+          <li><b style="color:var(--cream)">Escalonada</b>: 30d→10% / 60d→15% / 90d→combo</li>
+        </ul></div>
+    </div>
+  </div>`;
+  $('#addCli').onclick=async()=>{const nome=$('#cl_nome').value.trim(),wpp=$('#cl_wpp').value.replace(/\D/g,''),val=+$('#cl_val').value||0;if(!nome){toast('Informe o nome',true);return;}
+    const compras=val>0?[{data:new Date().toISOString().slice(0,10),valor:val}]:[];S.clientes.push({id:uid(),nome,whatsapp:wpp,compras});await sheetSave();toast('Cliente adicionado');renderClientes();};}
+
+// ============================================================
+//  CONFIG
+// ============================================================
+function renderConfig(){
+  view.innerHTML=`
+  <div class="head"><div><div class="ey">Configurações</div><h1>Integração Google Sheets</h1>
+  <p>Configure uma vez — depois o sistema sincroniza automaticamente em todos os dispositivos.</p></div></div>
+  <div class="setup-banner">
+    <h3>📋 Passo a passo (5 minutos, só uma vez)</h3>
+    <ol class="setup-steps">
+      <li>Abra <b>script.google.com</b> e clique em <b>"Novo projeto"</b></li>
+      <li>Apague o código que aparecer e cole o conteúdo do arquivo <b>apps-script.js</b> que você baixou</li>
+      <li>Clique em <b>Salvar</b> (ícone de disquete ou Ctrl+S)</li>
+      <li>Clique em <b>"Implantar" → "Nova implantação"</b></li>
+      <li>Em "Tipo", selecione <b>"App da Web"</b></li>
+      <li>Em "Executar como": <b>Eu</b> · Em "Quem tem acesso": <b>Qualquer pessoa</b></li>
+      <li>Clique em <b>Implantar</b> e autorize (pode aparecer "App não verificado" — clique em "Avançado" e depois "Acessar")</li>
+      <li>Copie a <b>URL do app da web</b> gerada e cole abaixo</li>
+    </ol>
+  </div>
+  <div class="panel">
+    <h3 style="margin-bottom:14px">URL do Apps Script</h3>
+    <div class="field"><label>Cole a URL aqui</label>
+      <input class="url-inp" id="cfg_url" placeholder="https://script.google.com/macros/s/..." value="${SHEET_URL}">
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="cfg_save">Salvar URL</button>
+      <button class="btn ghost" id="cfg_test">Testar conexão</button>
+    </div>
+    <div id="cfg_result" style="margin-top:12px;font-size:13px;min-height:20px"></div>
+  </div>`;
+  $('#cfg_save').onclick=()=>{SHEET_URL=$('#cfg_url').value.trim();localStorage.setItem('sheetUrl',SHEET_URL);toast('URL salva');setSyncStatus('none','URL salva — teste a conexão');};
+  $('#cfg_test').onclick=async()=>{
+    SHEET_URL=$('#cfg_url').value.trim();localStorage.setItem('sheetUrl',SHEET_URL);
+    $('#cfg_result').textContent='Testando...';
+    try{const r=await fetch(SHEET_URL+'?action=ping');const j=await r.json();
+      $('#cfg_result').innerHTML=j.ok?'<span style="color:var(--green)">✅ Conexão OK! O sistema vai sincronizar com o Sheets.</span>':'<span style="color:var(--red)">❌ Erro: '+j.error+'</span>';
+      if(j.ok){setSyncStatus('ok','Conectado');await sheetLoad();render();}
+    }catch(e){$('#cfg_result').innerHTML='<span style="color:var(--red)">❌ Não conseguiu conectar. Verifique a URL e as permissões de acesso.</span>';setSyncStatus('err');}
+  };
+}
+
+// ============================================================
+//  BOOT
+// ============================================================
+(async function(){
+  seed(); // dados de exemplo
+  const ok = await sheetLoad(); // tenta carregar do Sheets
+  if (ok) toast('Dados carregados do Google Sheets');
+  else if (!SHEET_URL) { setSyncStatus('none','Configure em ⚙️'); }
+  render();
+  // auto-sync a cada 2 minutos
+  setInterval(async()=>{ if(SHEET_URL){ await sheetLoad(); if(tab==='balanco'||tab==='fechamento') render(); }}, 120000);
+})();
+</script>
