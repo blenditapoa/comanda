@@ -325,17 +325,18 @@ function render() {
 // ============================================================
 //  FECHAMENTO
 // ============================================================
-let draftSaidas = [], draftVendas = [];
+let draftSaidas = [], draftVendas = [], editandoId = null;
 
 function renderFechamento() {
   if (!draftVendas.length) draftVendas = S.produtos.map(p=>({pid:p.id,qtd:0}));
   const hoje = new Date().toISOString().slice(0,10);
+  const modoEdicao = !!editandoId;
   view.innerHTML = `
-  <div class="head"><div><div class="ey">Final de turno</div><h1>Fechamento de caixa</h1>
+  <div class="head"><div><div class="ey">Final de turno</div><h1>${modoEdicao?'Editando fechamento':'Fechamento de caixa'}</h1>
   <p>Some os campos abaixo — o total precisa bater com o <b>Total de vendas</b>. O sistema confere na hora.</p></div></div>
   <div class="split">
     <div class="panel">
-      <div class="ph"><h3>Comanda do dia</h3></div>
+      <div class="ph"><h3>${modoEdicao?'✏️ Editando registro':'Comanda do dia'}</h3>${modoEdicao?'<button class="btn ghost sm" id="cancelEdit">✕ Cancelar edição</button>':''}</div>
       <div class="row c2">
         <div class="field"><label>Data</label><input class="inp" type="date" id="f_data" value="${hoje}"></div>
         <div class="field"><label>Caixa</label><input class="inp" id="f_caixa" placeholder="quem fechou"></div>
@@ -362,7 +363,7 @@ function renderFechamento() {
       <button class="btn ghost sm" id="addSaida" style="margin:4px 0 12px">+ outra saída em dinheiro</button>
       <div class="field"><label>Observações</label><input class="inp" id="f_obs" placeholder="ocorrências do turno"></div>
       <details><summary>Vendas por produto (opcional — para baixa de estoque)</summary><div id="vendas_box" style="margin-top:8px"></div></details>
-      <button class="btn" id="salvar_btn" style="width:100%;margin-top:16px;padding:13px">Salvar fechamento</button>
+      <button class="btn ${modoEdicao?'gold':''}" id="salvar_btn" style="width:100%;margin-top:16px;padding:13px">${modoEdicao?'✔ Salvar alterações':'Salvar fechamento'}</button>
     </div>
     <div>
       <div class="panel" style="margin-bottom:14px">
@@ -377,8 +378,30 @@ function renderFechamento() {
   </div>`;
 
   renderVendasBox(); renderSaidaBox(); atualizarConf();
+
+  // Se modo edição, preenche os campos com os dados do fechamento
+  if (editandoId) {
+    const f = S.fechamentos.find(x=>x.id===editandoId);
+    if (f) {
+      $('#f_data').value = f.data;
+      $('#f_caixa').value = f.caixa||'';
+      CONF_CAMPOS.forEach(c=>{ const el=$('#'+c.id); if(el) el.value = f.conf?.[c.id]||0; });
+      $('#f_total').value = f.totalVendas||0;
+      $('#f_ti').value = f.trocoInicio||0;
+      $('#f_tf').value = f.trocoFinal||0;
+      $('#f_mrep').value = f.motoboyRepasse||0;
+      $('#f_mpix').value = f.motoboyPix||0;
+      $('#f_obs').value = f.obs||'';
+      draftSaidas = (f.saidas||[]).map(s=>({...s}));
+      draftVendas = (f.vendas||[]).map(v=>({...v}));
+      renderSaidaBox(); renderVendasBox();
+    }
+    $('#cancelEdit').onclick = ()=>{ editandoId=null; draftSaidas=[]; draftVendas=[]; render(); };
+  }
+
   [...document.querySelectorAll('.inp.mono')].forEach(el=>el.addEventListener('input', atualizarConf));
   $('#f_total').addEventListener('input', atualizarConf);
+  atualizarConf();
   $('#addSaida').onclick = ()=>{draftSaidas.push({desc:'',valor:''});renderSaidaBox();};
   $('#salvar_btn').onclick = salvarFechamento;
   renderUltimos();
@@ -439,7 +462,8 @@ async function salvarFechamento() {
   const total = +$('#f_total').value||0;
   if (soma <= 0 && total <= 0) { toast('Preencha os valores do turno', true); return; }
   const f = {
-    id:uid(), data:$('#f_data').value, caixa:$('#f_caixa').value,
+    id: editandoId || uid(),
+    data:$('#f_data').value, caixa:$('#f_caixa').value,
     conf:r, totalVendas:total,
     trocoInicio:+$('#f_ti').value||0, trocoFinal:+$('#f_tf').value||0,
     motoboyRepasse:+$('#f_mrep').value||0, motoboyPix:+$('#f_mpix').value||0,
@@ -447,22 +471,52 @@ async function salvarFechamento() {
     vendas:draftVendas.filter(v=>v.qtd>0).map(v=>({pid:v.pid,qtd:v.qtd})),
     obs:$('#f_obs').value
   };
-  // baixa de estoque
-  f.vendas.forEach(v=>{const p=produto(v.pid);if(p)(p.ficha||[]).forEach(([iid,q])=>{const i=insumo(iid);if(i)i.qtd=Math.max(0,i.qtd-q*v.qtd);});});
-  S.fechamentos.push(f);
+  if (editandoId) {
+    // Substitui o registro existente
+    const idx = S.fechamentos.findIndex(x=>x.id===editandoId);
+    if (idx>=0) S.fechamentos[idx] = f; else S.fechamentos.push(f);
+    editandoId = null;
+    toast('Fechamento atualizado no Sheets');
+  } else {
+    // Baixa de estoque só em registros novos
+    f.vendas.forEach(v=>{const p=produto(v.pid);if(p)(p.ficha||[]).forEach(([iid,q])=>{const i=insumo(iid);if(i)i.qtd=Math.max(0,i.qtd-q*v.qtd);});});
+    S.fechamentos.push(f);
+    toast('Fechamento salvo e enviado para o Sheets');
+  }
   await sheetSave();
   draftSaidas=[]; draftVendas=[];
-  toast('Fechamento salvo e enviado para o Sheets');
   render();
 }
 
 function renderUltimos() {
-  const last = [...S.fechamentos].sort((a,b)=>b.data.localeCompare(a.data)).slice(0,6);
+  const last = [...S.fechamentos].sort((a,b)=>b.data.localeCompare(a.data)).slice(0,10);
   $('#ult_list').innerHTML = last.length
-    ? `<table><thead><tr><th>Data</th><th>Caixa</th><th class="n">Total vendas</th></tr></thead><tbody>`+
-      last.map(f=>`<tr><td class="mini" style="font-family:'Space Mono'">${f.data.slice(5).split('-').reverse().join('/')}</td>
-        <td>${f.caixa||'—'}</td><td class="n">${money(fatF(f))}</td></tr>`).join('')+'</tbody></table>'
+    ? `<table><thead><tr><th>Data</th><th>Caixa</th><th class="n">Total</th><th></th></tr></thead><tbody>`+
+      last.map(f=>`<tr>
+        <td class="mini" style="font-family:'Space Mono'">${f.data.slice(5).split('-').reverse().join('/')}</td>
+        <td>${f.caixa||'—'}</td>
+        <td class="n">${money(fatF(f))}</td>
+        <td style="white-space:nowrap">
+          <button class="btn ghost sm" data-edit="${f.id}" style="margin-right:4px">✏️</button>
+          <button class="btn sm" data-del="${f.id}" style="background:rgba(216,88,76,.2);color:#f0907f;border:none">🗑</button>
+        </td></tr>`).join('')+'</tbody></table>'
     : '<div class="empty">Nenhum fechamento ainda</div>';
+
+  document.querySelectorAll('[data-edit]').forEach(btn=>btn.onclick=()=>{
+    editandoId = btn.dataset.edit;
+    draftSaidas=[]; draftVendas=[];
+    renderFechamento();
+    window.scrollTo(0,0);
+  });
+  document.querySelectorAll('[data-del]').forEach(btn=>btn.onclick=async()=>{
+    const f = S.fechamentos.find(x=>x.id===btn.dataset.del);
+    if(!f) return;
+    if(!confirm(`Excluir fechamento de ${f.data}? Essa ação não tem volta.`)) return;
+    S.fechamentos = S.fechamentos.filter(x=>x.id!==btn.dataset.del);
+    await sheetSave();
+    toast('Fechamento excluído');
+    renderUltimos();
+  });
 }
 
 // ============================================================
@@ -705,11 +759,11 @@ function renderConfig(){
     setSyncStatus('none', 'Configure em ⚙️');
   }
   render();
-  // Auto-sync a cada 2 minutos — só leitura, nunca grava seed
+  // Auto-sync a cada 2 minutos — NUNCA interrompe o fechamento em andamento
   setInterval(async()=>{
-    if (SHEET_URL) {
+    if (SHEET_URL && tab !== 'fechamento') {
       await sheetLoad();
-      if (tab==='balanco'||tab==='fechamento') render();
+      render();
     }
   }, 120000);
 })();
