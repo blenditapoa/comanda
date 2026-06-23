@@ -166,7 +166,7 @@ summary{cursor:pointer;font-size:12.5px;color:var(--muted);font-weight:600}
 // ============================================================
 //  CONFIG — URL do Apps Script já configurada
 // ============================================================
-let SHEET_URL = 'https://script.google.com/macros/s/AKfycbzvKjoETBNeb7YDAE1b3qmKeuUbErqbue2SKwuwJyhDhDfHwweN4Oy76cfgAoEgVA-ERQ/exec';
+let SHEET_URL = 'https://script.google.com/macros/s/AKfycbyX44cbwOp7d5ksMQekI_5W_z_fxHf9ZLN3gygKCxctFONFQP0ikgvx3s9cZ0k9qzwgfQ/exec';
 
 // ============================================================
 //  ESTADO
@@ -191,10 +191,7 @@ async function sheetLoad() {
   if (!SHEET_URL) return false;
   setSyncStatus('loading');
   try {
-    const r = await fetch(SHEET_URL + '?action=load', {
-      method: 'GET',
-      redirect: 'follow'
-    });
+    const r = await fetch(SHEET_URL + '?action=load', { redirect: 'follow' });
     const j = await r.json();
     if (j.ok && j.data) {
       KEYS.forEach(k => { if (j.data[k] && j.data[k].length > 0) S[k] = j.data[k]; });
@@ -208,28 +205,17 @@ async function sheetSave() {
   if (!SHEET_URL) return;
   setSyncStatus('loading');
   try {
-    // Envia via image tag — contorna CORS para disparo (fire-and-forget)
-    const dados = encodeURIComponent(JSON.stringify({s: S}));
-    // Divide em chunks se necessário e usa GET com param curto
-    const url = SHEET_URL + '?action=save&d=' + dados;
-    if (url.length < 7500) {
-      // URL curta o suficiente — usa img trick
-      await new Promise((res) => {
-        const img = new Image();
-        img.onload = img.onerror = res;
-        img.src = url;
-        setTimeout(res, 3000);
-      });
-    } else {
-      // Fallback: no-cors POST
-      await fetch(SHEET_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: JSON.stringify(S)
-      });
-    }
-    setTimeout(async () => { await sheetLoad(); }, 2500);
-    setSyncStatus('ok', 'Salvo ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
+    await fetch(SHEET_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify(S)
+    });
+    // Aguarda 3s e confirma via load
+    setTimeout(async () => {
+      const ok = await sheetLoad();
+      if (!ok) setSyncStatus('err', 'Verifique a conexão');
+    }, 3000);
+    setSyncStatus('ok', 'Enviado — confirmando...');
   } catch(e) { setSyncStatus('err', 'Sem conexão'); }
 }
 
