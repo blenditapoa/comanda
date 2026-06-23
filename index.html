@@ -530,15 +530,21 @@ function renderUltimos() {
 let _charts = {};
 function renderBalanco() {
   const fs = [...S.fechamentos].sort((a,b)=>a.data.localeCompare(b.data));
-  if (!fs.length) { view.innerHTML='<div class="head"><div><div class="ey">Análise</div><h1>Balanço</h1></div></div><div class="panel"><div class="empty">Salve fechamentos para ver o balanço.</div></div>'; return; }
+  // Filtra só fechamentos com total de vendas > 0
+  const validos = fs.filter(f => fatF(f) > 0);
+  if (!validos.length) {
+    view.innerHTML='<div class="head"><div><div class="ey">Análise</div><h1>Balanço</h1></div></div><div class="panel"><div class="empty">Salve fechamentos com valores para ver o balanço.</div></div>';
+    return;
+  }
   const cut = new Date(); cut.setDate(cut.getDate()-30);
-  const win = fs.filter(f=>f.data >= cut.toISOString().slice(0,10));
-  const fatT = win.reduce((a,f)=>a+fatF(f), 0);
-  const cmvT = win.reduce((a,f)=>a+cmvFech(f), 0);
-  const motT = win.reduce((a,f)=>a+(+(f.conf?.pg_motoboy||0)), 0);
-  const colT = win.reduce((a,f)=>a+(+(f.conf?.pg_colaborador||0)), 0);
+  const win = validos.filter(f=>f.data >= cut.toISOString().slice(0,10));
+  const base = win.length ? win : validos; // fallback se nenhum nos últimos 30 dias
+  const fatT = base.reduce((a,f)=>a+fatF(f), 0);
+  const cmvT = base.reduce((a,f)=>a+cmvFech(f), 0);
+  const motT = base.reduce((a,f)=>a+(+(f.conf?.pg_motoboy||0)), 0);
+  const colT = base.reduce((a,f)=>a+(+(f.conf?.pg_colaborador||0)), 0);
   const mix = {Cartão:0,Online:0,'PIX Online':0,Dinheiro:0,Motoboy:0,Colaborador:0};
-  win.forEach(f=>{const c=f.conf||{};
+  base.forEach(f=>{const c=f.conf||{};
     mix.Cartão+=(+c.pg_cartao||0)+(+c.pg_cartaocpf||0);
     mix.Online+=(+c.pg_online||0)+(+c.pg_voucher||0);
     mix['PIX Online']+=(+c.pg_onlinepix||0);
@@ -546,22 +552,23 @@ function renderBalanco() {
     mix.Motoboy+=(+c.pg_motoboy||0);
     mix.Colaborador+=(+c.pg_colaborador||0);
   });
+  const mixTotal = Object.values(mix).reduce((a,b)=>a+b,0);
   const prodMap={};
-  win.forEach(f=>(f.vendas||[]).forEach(v=>{prodMap[v.pid]=(prodMap[v.pid]||0)+v.qtd;}));
+  base.forEach(f=>(f.vendas||[]).forEach(v=>{prodMap[v.pid]=(prodMap[v.pid]||0)+v.qtd;}));
   const topProd = Object.entries(prodMap).map(([pid,q])=>({p:produto(pid),q})).filter(x=>x.p).sort((a,b)=>b.q-a.q);
 
   view.innerHTML = `
-  <div class="head"><div><div class="ey">Últimos 30 dias</div><h1>Balanço</h1></div></div>
+  <div class="head"><div><div class="ey">${win.length?'Últimos 30 dias':'Todos os registros'}</div><h1>Balanço</h1></div></div>
   <div class="grid kpis" style="margin-bottom:14px">
-    <div class="card kpi"><div class="lab">Total de Vendas</div><div class="val em">${money(fatT)}</div><div class="sub">${win.length} dias</div></div>
-    <div class="card kpi"><div class="lab">Média/dia</div><div class="val">${money(win.length?fatT/win.length:0)}</div></div>
+    <div class="card kpi"><div class="lab">Total de Vendas</div><div class="val em">${money(fatT)}</div><div class="sub">${base.length} dias</div></div>
+    <div class="card kpi"><div class="lab">Média/dia</div><div class="val">${money(base.length?fatT/base.length:0)}</div></div>
     <div class="card kpi"><div class="lab">Motoboy</div><div class="val gd">${money(motT)}</div><div class="sub">${fatT?(motT/fatT*100).toFixed(1):0}% do total</div></div>
     <div class="card kpi"><div class="lab">Colaborador</div><div class="val">${money(colT)}</div></div>
     ${cmvT?`<div class="card kpi"><div class="lab">CMV (fichas)</div><div class="val">${money(cmvT)}</div><div class="sub">${fatT?(cmvT/fatT*100).toFixed(0):0}%</div></div>`:''}
   </div>
   <div class="split" style="margin-bottom:14px">
     <div class="panel"><div class="ph"><h3>Total de vendas por dia</h3></div><canvas id="ch1" height="150"></canvas></div>
-    <div class="panel"><div class="ph"><h3>Mix de recebimentos</h3></div><canvas id="ch2" height="150"></canvas></div>
+    ${mixTotal>0?`<div class="panel"><div class="ph"><h3>Mix de recebimentos</h3></div><canvas id="ch2" height="150"></canvas></div>`:''}
   </div>
   ${topProd.length?`<div class="panel"><div class="ph"><h3>Produtos (quando lançados no fechamento)</h3></div>
     <table><thead><tr><th>Produto</th><th class="n">Qtd</th><th class="n">Receita</th><th class="n">Custo un.</th><th class="n">Margem un.</th></tr></thead><tbody>
@@ -571,11 +578,13 @@ function renderBalanco() {
   const cv = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
   Chart.defaults.color=cv('--muted'); Chart.defaults.font.family='Inter'; Chart.defaults.borderColor=cv('--line');
   Object.values(_charts).forEach(c=>{try{c.destroy()}catch(e){}});
-  const days = win.map(f=>f.data.slice(5).split('-').reverse().join('/'));
-  _charts.a = new Chart($('#ch1'),{type:'bar',data:{labels:days,datasets:[{label:'Total Vendas',data:win.map(fatF),backgroundColor:cv('--ember'),borderRadius:4}]},
+  const days = base.map(f=>f.data.slice(5).split('-').reverse().join('/'));
+  _charts.a = new Chart($('#ch1'),{type:'bar',data:{labels:days,datasets:[{label:'Total Vendas',data:base.map(fatF),backgroundColor:cv('--ember'),borderRadius:4}]},
     options:{plugins:{legend:{display:false}},scales:{y:{grid:{color:cv('--line')}},x:{grid:{display:false}}}}});
-  _charts.b = new Chart($('#ch2'),{type:'doughnut',data:{labels:Object.keys(mix),datasets:[{data:Object.values(mix),backgroundColor:[cv('--blue'),cv('--gold'),cv('--ember'),cv('--green'),cv('--red'),cv('--muted2')],borderWidth:0}]},
-    options:{cutout:'62%',plugins:{legend:{position:'right',labels:{boxWidth:10,padding:8}}}}});
+  if (mixTotal > 0 && $('#ch2')) {
+    _charts.b = new Chart($('#ch2'),{type:'doughnut',data:{labels:Object.keys(mix),datasets:[{data:Object.values(mix),backgroundColor:[cv('--blue'),cv('--gold'),cv('--ember'),cv('--green'),cv('--red'),cv('--muted2')],borderWidth:0}]},
+      options:{cutout:'62%',plugins:{legend:{position:'right',labels:{boxWidth:10,padding:8}}}}});
+  }
 }
 
 // ============================================================
