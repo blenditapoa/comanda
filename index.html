@@ -686,12 +686,31 @@ function renderConfig(){
 //  BOOT
 // ============================================================
 (async function(){
-  seed(); // dados de exemplo
-  const ok = await sheetLoad(); // tenta carregar do Sheets
-  if (ok) toast('Dados carregados do Google Sheets');
-  else if (!SHEET_URL) { setSyncStatus('none','Configure em ⚙️'); }
+  // Sempre carrega do Sheets primeiro se tiver URL configurada
+  if (SHEET_URL) {
+    const ok = await sheetLoad();
+    if (ok) {
+      // Só usa seed se o Sheets estiver completamente vazio
+      const temDados = KEYS.some(k => S[k] && S[k].length > 0);
+      if (!temDados) seed();
+      else toast('Dados carregados do Google Sheets');
+    } else {
+      // Sem conexão — usa seed só como fallback visual
+      seed();
+      setSyncStatus('err', 'Offline — exibindo exemplo');
+    }
+  } else {
+    // Sem URL configurada — mostra exemplo e pede configuração
+    seed();
+    setSyncStatus('none', 'Configure em ⚙️');
+  }
   render();
-  // auto-sync a cada 2 minutos
-  setInterval(async()=>{ if(SHEET_URL){ await sheetLoad(); if(tab==='balanco'||tab==='fechamento') render(); }}, 120000);
+  // Auto-sync a cada 2 minutos — só leitura, nunca grava seed
+  setInterval(async()=>{
+    if (SHEET_URL) {
+      await sheetLoad();
+      if (tab==='balanco'||tab==='fechamento') render();
+    }
+  }, 120000);
 })();
 </script>
