@@ -191,7 +191,7 @@ async function sheetLoad() {
   if (!SHEET_URL) return false;
   setSyncStatus('loading');
   try {
-    const r = await fetch(SHEET_URL + '?action=load', {method:'GET'});
+    const r = await fetch(SHEET_URL + '?action=load');
     const j = await r.json();
     if (j.ok && j.data) {
       KEYS.forEach(k => { if (j.data[k] && j.data[k].length > 0) S[k] = j.data[k]; });
@@ -205,12 +205,13 @@ async function sheetSave() {
   if (!SHEET_URL) return;
   setSyncStatus('loading');
   try {
-    const r = await fetch(SHEET_URL, { method:'POST',
-      body: JSON.stringify(S),
-      headers:{'Content-Type':'application/json'} });
+    // Usa GET com dados compactados para evitar bloqueio de CORS em POST
+    const dados = encodeURIComponent(JSON.stringify(S));
+    const url = SHEET_URL + '?action=save&dados=' + dados;
+    const r = await fetch(url);
     const j = await r.json();
     if (j.ok) setSyncStatus('ok', 'Salvo ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
-    else setSyncStatus('err', 'Erro ao salvar');
+    else setSyncStatus('err', 'Erro ao salvar: ' + (j.error||'?'));
   } catch(e) { setSyncStatus('err', 'Sem conexão'); }
 }
 
