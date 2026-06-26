@@ -1,5 +1,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>🍔 Comanda Central</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍔</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
@@ -599,7 +601,7 @@ function renderBalanco() {
   const cv = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
   Chart.defaults.color=cv('--muted'); Chart.defaults.font.family='Inter'; Chart.defaults.borderColor=cv('--line');
   Object.values(_charts).forEach(c=>{try{c.destroy()}catch(e){}});
-  const days = base.map(f=>f.data.slice(5).split('-').reverse().join('/'));
+  const days = base.map(f=>fmtData(f.data));
   _charts.a = new Chart($('#ch1'),{type:'bar',data:{labels:days,datasets:[{label:'Total Vendas',data:base.map(fatF),backgroundColor:cv('--ember'),borderRadius:4}]},
     options:{plugins:{legend:{display:false}},scales:{y:{grid:{color:cv('--line')}},x:{grid:{display:false}}}}});
   if (mixTotal > 0 && $('#ch2')) {
@@ -641,17 +643,57 @@ function renderEstoque() {
   const prev = ()=>{const i=insumo($('#c_item').value),q=+$('#c_qtd').value,v=+$('#c_val').value;$('#c_prev').textContent=(i&&q&&v)?`Novo custo: ${money(v/q)} (era ${money(i.custo)})`:'';};
   ['c_item','c_qtd','c_val'].forEach(id=>$('#'+id).addEventListener('input',prev));
 }
-function renderInsBody(){$('#ins_body').innerHTML=S.insumos.map(i=>`<tr><td>${i.nome}<div class="mini">${i.un}</div></td>
-  <td class="n" style="color:${i.qtd<i.min?'var(--red)':'var(--cream)'}">${i.qtd}</td><td class="n">${i.min}</td><td class="n">${money(i.custo)}</td>
-  <td><span class="tag ${i.qtd<i.min?'lo':'ok'}">${i.qtd<i.min?'baixo':'ok'}</span></td></tr>`).join('')||'<tr><td colspan=5><div class="empty">Sem insumos</div></td></tr>';}
+function renderInsBody(){
+  $('#ins_body').innerHTML=S.insumos.map(i=>`<tr>
+    <td><b>${i.nome}</b><div class="mini">${i.un}</div></td>
+    <td class="n" style="color:${i.qtd<i.min?'var(--red)':'var(--cream)'}">${i.qtd}</td>
+    <td class="n">${i.min}</td>
+    <td class="n">${money(i.custo)}</td>
+    <td><span class="tag ${i.qtd<i.min?'lo':'ok'}">${i.qtd<i.min?'baixo':'ok'}</span></td>
+    <td><button class="btn ghost sm" data-edit-ins="${i.id}">✏️</button> <span class="px" data-del-ins="${i.id}">✕</span></td>
+  </tr>`).join('')||'<tr><td colspan=6><div class="empty">Sem insumos</div></td></tr>';
+  document.querySelectorAll('[data-edit-ins]').forEach(btn=>btn.onclick=()=>editarInsumo(btn.dataset.editIns));
+  document.querySelectorAll('[data-del-ins]').forEach(x=>x.onclick=async()=>{
+    if(!confirm('Excluir insumo?'))return;
+    S.insumos=S.insumos.filter(i=>i.id!==x.dataset.delIns);await sheetSave();toast('Insumo excluído');renderEstoque();});
+}
+async function editarInsumo(id){
+  const i=insumo(id);if(!i)return;
+  const nome=prompt('Nome:',i.nome);if(nome===null)return;
+  const un=prompt('Unidade:',i.un)||i.un;
+  const min=prompt('Estoque mínimo:',i.min);
+  const custo=prompt('Custo unitário (R$):',i.custo);
+  const qtd=prompt('Quantidade atual:',i.qtd);
+  i.nome=nome||i.nome; i.un=un; i.min=+min||i.min; i.custo=+custo||i.custo; i.qtd=+qtd||i.qtd;
+  await sheetSave();toast('Insumo atualizado');renderEstoque();
+}
 async function addInsumo(){const nome=prompt('Nome:');if(!nome)return;const un=prompt('Unidade:','un')||'un';const min=+prompt('Mínimo:','0');const custo=+prompt('Custo unitário (R$):','0');
   S.insumos.push({id:uid(),nome,un,qtd:0,min,custo});await sheetSave();toast('Insumo cadastrado');renderEstoque();}
 async function regCompra(){const i=insumo($('#c_item').value);const q=+$('#c_qtd').value,v=+$('#c_val').value;if(!i||q<=0||v<=0){toast('Preencha item, quantidade e valor',true);return;}
   i.qtd+=q;i.custo=v/q;await sheetSave();toast(`${i.nome}: +${q} · custo ${money(i.custo)}`);renderEstoque();}
 function renderFicha(){$('#ficha_box').innerHTML=S.produtos.map(p=>`<div style="padding:9px 0;border-bottom:1px solid var(--line)">
-  <div style="display:flex;justify-content:space-between"><b style="font-size:13px">${p.nome}</b><span class="mini">custo ${money(custoProd(p))} · venda ${money(p.preco)}</span></div>
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <b style="font-size:13px">${p.nome}</b>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="mini">custo ${money(custoProd(p))} · venda ${money(p.preco)}</span>
+      <button class="btn ghost sm" data-edit-prod="${p.id}">✏️</button>
+      <span class="px" data-del-prod="${p.id}">✕</span>
+    </div>
+  </div>
   <div style="margin-top:4px">${(p.ficha||[]).map(([iid,q])=>{const i=insumo(iid);return i?`<span class="chip">${i.nome} <b>${q}${i.un}</b></span>`:'';}).join('')||'<span class="mini" style="color:var(--muted2)">sem ficha</span>'}</div>
-  </div>`).join('')||'<div class="empty">Sem produtos</div>';}
+  </div>`).join('')||'<div class="empty">Sem produtos</div>';
+  document.querySelectorAll('[data-edit-prod]').forEach(btn=>btn.onclick=()=>editarProduto(btn.dataset.editProd));
+  document.querySelectorAll('[data-del-prod]').forEach(x=>x.onclick=async()=>{
+    if(!confirm('Excluir produto?'))return;
+    S.produtos=S.produtos.filter(p=>p.id!==x.dataset.delProd);await sheetSave();toast('Produto excluído');renderEstoque();});
+}
+async function editarProduto(id){
+  const p=produto(id);if(!p)return;
+  const nome=prompt('Nome do produto:',p.nome);if(nome===null)return;
+  const preco=prompt('Preço de venda (R$):',p.preco);
+  p.nome=nome||p.nome; p.preco=+preco||p.preco;
+  await sheetSave();toast('Produto atualizado');renderEstoque();
+}
 
 // ============================================================
 //  FORNECEDORES
@@ -672,9 +714,24 @@ function renderFornecedores(){
     <table><thead><tr><th>Nome</th><th>WhatsApp</th><th>Itens</th><th></th></tr></thead><tbody id="forn_body"></tbody></table></div>`;
   $('#forn_body').innerHTML=S.fornecedores.map(f=>`<tr><td><b>${f.nome}</b></td><td class="mini" style="font-family:'Space Mono'">${f.whatsapp}</td>
     <td>${(f.insumos||[]).map(id=>{const i=insumo(id);return i?`<span class="chip">${i.nome}</span>`:''}).join('')||'<span class="mini">—</span>'}</td>
-    <td class="n"><span class="px" data-del="${f.id}">✕</span></td></tr>`).join('')||'<tr><td colspan=4><div class="empty">Sem fornecedores</div></td></tr>';
+    <td class="n" style="white-space:nowrap"><button class="btn ghost sm" data-edit-forn="${f.id}" style="margin-right:4px">✏️</button><span class="px" data-del="${f.id}">✕</span></td></tr>`).join('')||'<tr><td colspan=4><div class="empty">Sem fornecedores</div></td></tr>';
   $('#addForn').onclick=addForn;
-  document.querySelectorAll('#forn_body [data-del]').forEach(x=>x.onclick=async()=>{S.fornecedores=S.fornecedores.filter(f=>f.id!==x.dataset.del);await sheetSave();renderFornecedores();});
+  document.querySelectorAll('[data-edit-forn]').forEach(btn=>btn.onclick=()=>editarFornecedor(btn.dataset.editForn));
+  document.querySelectorAll('#forn_body [data-del]').forEach(x=>x.onclick=async()=>{
+    if(!confirm('Excluir fornecedor?'))return;
+    S.fornecedores=S.fornecedores.filter(f=>f.id!==x.dataset.del);await sheetSave();renderFornecedores();});
+}
+async function editarFornecedor(id){
+  const f=S.fornecedores.find(x=>x.id===id);if(!f)return;
+  const nome=prompt('Nome do fornecedor:',f.nome);if(nome===null)return;
+  const wpp=prompt('WhatsApp (com 55 e DDD):',f.whatsapp);
+  const lista=S.insumos.map((i,n)=>`${n+1}. ${i.nome}`).join('\n');
+  const atuais=f.insumos.map(id=>S.insumos.findIndex(i=>i.id===id)+1).join(',');
+  const sel=prompt('Itens que vende (números separados por vírgula):\n'+lista,atuais);
+  f.nome=nome||f.nome;
+  f.whatsapp=(wpp||f.whatsapp).replace(/\D/g,'');
+  if(sel!==null){const idxs=(sel).split(',').map(s=>+s.trim()-1).filter(n=>n>=0&&n<S.insumos.length);f.insumos=idxs.map(n=>S.insumos[n].id);}
+  await sheetSave();toast('Fornecedor atualizado');renderFornecedores();
 }
 async function addForn(){const nome=prompt('Nome do fornecedor:');if(!nome)return;const wpp=(prompt('WhatsApp (com 55 e DDD, apenas números):')||'').replace(/\D/g,'');if(!wpp){toast('WhatsApp inválido',true);return;}
   const lista=S.insumos.map((i,n)=>`${n+1}. ${i.nome}`).join('\n');const sel=prompt('Quais itens ele vende? (números separados por vírgula)\n'+lista,'');
@@ -685,50 +742,192 @@ async function addForn(){const nome=prompt('Nome do fornecedor:');if(!nome)retur
 //  CLIENTES
 // ============================================================
 function diasDesde(d){return Math.floor((Date.now()-new Date(d).getTime())/864e5);}
-function rfm(c){const cs=c.compras||[];const freq=cs.length;const mon=cs.reduce((a,x)=>a+(+x.valor||0),0);
-  const ultima=cs.length?cs.map(x=>x.data).sort().slice(-1)[0]:null;const rec=ultima?diasDesde(ultima):9999;
-  let seg='novo';if(freq>=4&&rec<=20)seg='vip';else if(rec>30)seg='inativo';else if(freq>=2)seg='fiel';
-  return{freq,mon,rec,ultima,seg,ticket:freq?mon/freq:0};}
+function diasDesde(d){return Math.floor((Date.now()-new Date(d).getTime())/864e5);}
+
+// Temperatura baseada em recência + frequência
+function temperatura(c){
+  const rec = c.diasUltimoPedido!=null ? +c.diasUltimoPedido : 9999;
+  const comp = +c.compras || (c.comprasLegado||[]).length || 0;
+  if(rec<=15 && comp>=5) return 'quente';
+  if(rec<=30 && comp>=2) return 'quente';
+  if(rec<=45) return 'morna';
+  return 'fria';
+}
+function tempLabel(t){return t==='quente'?'🔥 Quente':t==='morna'?'🌡️ Morna':'🧊 Fria';}
+function tempColor(t){return t==='quente'?'var(--ember)':t==='morna'?'var(--gold)':'var(--blue)';}
+function tempTag(t){return t==='quente'?'vip':t==='morna'?'mid':'inat';}
+
+function parsarCSVClientes(texto){
+  const linhas=texto.trim().split('\n');
+  if(linhas.length<2)return[];
+  const sep=linhas[0].includes(';')?';':',';
+  const headers=linhas[0].split(sep).map(h=>h.trim().replace(/"/g,'').toLowerCase());
+  const col=(names)=>{for(const n of names){const i=headers.findIndex(h=>h.includes(n));if(i>=0)return i;}return -1;};
+  const iNome=col(['cliente','nome','name']);
+  const iTel=col(['telefone','tel','phone','whatsapp','celular','fone']);
+  const iBairro=col(['bairro','neighborhood']);
+  const iUltimo=col(['último pedido','ultimo pedido','last order','último','data']);
+  const iCompras=col(['compras','pedidos','orders','qtd']);
+  const iFat=col(['faturado','total','receita','valor']);
+  const iTicket=col(['ticket','ticket médio','média']);
+  const iOrigem=col(['origem','canal','source']);
+  const iDesde=col(['cliente desde','desde','membro']);
+  const clientes=[];
+  for(let i=1;i<linhas.length;i++){
+    const row=linhas[i].split(sep).map(c=>c.trim().replace(/"/g,''));
+    if(!row[iNome]||!row[iNome].trim())continue;
+    let diasUltimoPedido=9999;
+    if(iUltimo>=0&&row[iUltimo]){
+      const raw=row[iUltimo];
+      const mBR=raw.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+      const mISO=raw.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if(mBR)diasUltimoPedido=diasDesde(`${mBR[3]}-${mBR[2]}-${mBR[1]}`);
+      else if(mISO)diasUltimoPedido=diasDesde(mISO[0]);
+    }
+    let wpp=iTel>=0?row[iTel]:'';
+    wpp=wpp.replace(/\D/g,'');
+    if(wpp.length===11)wpp='55'+wpp;
+    const fatVal=iFat>=0?+row[iFat].replace(/[R$\s.]/g,'').replace(',','.'):0;
+    const ticketVal=iTicket>=0?+row[iTicket].replace(/[R$\s.]/g,'').replace(',','.'):0;
+    const comprasVal=iCompras>=0?+row[iCompras]:0;
+    clientes.push({id:uid(),nome:row[iNome],whatsapp:wpp,
+      bairro:iBairro>=0?row[iBairro]:'',origem:iOrigem>=0?row[iOrigem]:'',
+      clienteDesde:iDesde>=0?row[iDesde]:'',ultimoPedidoRaw:iUltimo>=0?row[iUltimo]:'',
+      diasUltimoPedido,compras:comprasVal,faturado:fatVal,
+      ticketMedio:ticketVal||(comprasVal>0?fatVal/comprasVal:0),comprasLegado:[]});
+  }
+  return clientes;
+}
+
+let filtroTemp='todos';
 function renderClientes(){
-  const lista=S.clientes.map(c=>({c,...rfm(c)})).sort((a,b)=>b.mon-a.mon);
-  const vip=lista.filter(x=>x.seg==='vip');const inat=lista.filter(x=>x.seg==='inativo');const ltv=lista.reduce((a,x)=>a+x.mon,0);
+  const todos=S.clientes.map(c=>({...c,temp:temperatura(c)}));
+  const quentes=todos.filter(x=>x.temp==='quente');
+  const mornas=todos.filter(x=>x.temp==='morna');
+  const frias=todos.filter(x=>x.temp==='fria');
+  const lista=(filtroTemp==='todos'?todos:filtroTemp==='quente'?quentes:filtroTemp==='morna'?mornas:frias)
+    .sort((a,b)=>(b.faturado||0)-(a.faturado||0));
+  const ltv=todos.reduce((a,c)=>a+(+c.faturado||0),0);
+  const tickArr=todos.filter(c=>c.ticketMedio>0);
+  const tickMed=tickArr.length?tickArr.reduce((a,c)=>a+c.ticketMedio,0)/tickArr.length:0;
+  const msgQ=(nome)=>encodeURIComponent(`Oi ${nome.split(' ')[0]}! 🍔🔥 Você é um dos nossos clientes favoritos! Temos novidade exclusiva pra você. Bora pedir hoje?`);
+  const msgM=(nome)=>encodeURIComponent(`Oi ${nome.split(' ')[0]}! 🍔 Sentimos sua falta! Use VOLTA10 e ganhe 10% OFF no seu próximo pedido!`);
+  const msgF=(nome)=>encodeURIComponent(`Oi ${nome.split(' ')[0]}! 🍔🧊 Faz tempo que não te vemos! Cupom VOLTEI15 — 15% OFF pra você voltar. Válido essa semana!`);
+  const msgT=(c)=>c.temp==='quente'?msgQ(c.nome):c.temp==='morna'?msgM(c.nome):msgF(c.nome);
+
   view.innerHTML=`
-  <div class="head"><div><div class="ey">Base & fidelização</div><h1>Clientes</h1></div></div>
-  <div class="grid kpis" style="margin-bottom:14px">
-    <div class="card kpi"><div class="lab">Clientes</div><div class="val">${lista.length}</div></div>
-    <div class="card kpi"><div class="lab">VIPs</div><div class="val em">${vip.length}</div></div>
-    <div class="card kpi"><div class="lab">Inativos +30d</div><div class="val" style="color:var(--red)">${inat.length}</div></div>
-    <div class="card kpi"><div class="lab">LTV total</div><div class="val gd">${money(ltv)}</div></div>
+  <div class="head">
+    <div><div class="ey">CRM & Base de clientes</div><h1>Clientes</h1>
+    <p>Importe o CSV do seu sistema, classifique por temperatura e dispare no WhatsApp.</p></div>
+    <label class="btn gold" style="cursor:pointer">📥 Importar CSV <input type="file" accept=".csv" id="csvInput" style="display:none"></label>
   </div>
-  ${inat.length?`<div class="panel" style="margin-bottom:14px"><div class="ph"><h3 style="color:var(--ember)">🎯 Reativação</h3></div>
-    <table><thead><tr><th>Cliente</th><th class="n">Última</th><th class="n">Total gasto</th><th>Ação</th></tr></thead><tbody>
-    ${inat.map(({c,rec,mon})=>{const cup='VOLTA15';const msg=encodeURIComponent(`Oi ${c.nome.split(' ')[0]}! Sentimos sua falta 🍔 Use o cupom ${cup} e ganhe 15% OFF no próximo pedido. Válido essa semana!`);
-      return `<tr><td><b>${c.nome}</b></td><td class="n">${rec}d</td><td class="n">${money(mon)}</td><td><a class="btn wpp sm" style="text-decoration:none;display:inline-block" target="_blank" href="https://wa.me/${c.whatsapp}?text=${msg}">📲 Cupom</a></td></tr>`;}).join('')}
-    </tbody></table></div>`:''}
+  <div class="grid kpis" style="margin-bottom:14px">
+    <div class="card kpi"><div class="lab">Total</div><div class="val">${todos.length}</div></div>
+    <div class="card kpi" style="cursor:pointer" onclick="filtroTemp='quente';renderClientes()">
+      <div class="lab">🔥 Quentes</div><div class="val em">${quentes.length}</div><div class="sub">ativos recentes</div></div>
+    <div class="card kpi" style="cursor:pointer" onclick="filtroTemp='morna';renderClientes()">
+      <div class="lab">🌡️ Mornas</div><div class="val gd">${mornas.length}</div><div class="sub">precisam atenção</div></div>
+    <div class="card kpi" style="cursor:pointer" onclick="filtroTemp='fria';renderClientes()">
+      <div class="lab">🧊 Frias</div><div class="val" style="color:var(--blue)">${frias.length}</div><div class="sub">reativar urgente</div></div>
+    <div class="card kpi"><div class="lab">LTV total</div><div class="val gd">${money(ltv)}</div></div>
+    <div class="card kpi"><div class="lab">Ticket médio</div><div class="val">${money(tickMed)}</div></div>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+    ${['todos','quente','morna','fria'].map(t=>`<button onclick="filtroTemp='${t}';renderClientes()" class="btn ${filtroTemp===t?'':'ghost'} sm">
+      ${t==='todos'?'👥 Todos':t==='quente'?'🔥 Quentes':t==='morna'?'🌡️ Mornas':'🧊 Frias'} <b style="margin-left:3px">${t==='todos'?todos.length:t==='quente'?quentes.length:t==='morna'?mornas.length:frias.length}</b>
+    </button>`).join('')}
+    ${lista.length>0?`<button class="btn ghost sm" id="dispTodos" style="margin-left:auto">📲 Disparar para lista (${lista.length})</button>`:''}
+  </div>
+  <div class="panel" style="margin-bottom:14px">
+    <div class="ph"><div><h3>${filtroTemp==='todos'?'Ranking completo':tempLabel(filtroTemp)}</h3>
+    <div class="sub">${lista.length} clientes · por faturado</div></div></div>
+    <div style="overflow-x:auto"><table><thead><tr>
+      <th>Cliente</th><th>Bairro</th><th class="n">Compras</th><th class="n">Faturado</th>
+      <th class="n">Ticket</th><th class="n">Último pedido</th><th>Temp.</th><th>Ações</th>
+    </tr></thead><tbody>
+    ${lista.map(c=>`<tr>
+      <td><b>${c.nome}</b><div class="mini">${c.whatsapp||'sem fone'}</div></td>
+      <td class="mini">${c.bairro||'—'}</td>
+      <td class="n">${c.compras||0}</td>
+      <td class="n">${money(c.faturado||0)}</td>
+      <td class="n">${money(c.ticketMedio||0)}</td>
+      <td class="n mini">${+c.diasUltimoPedido<9999?c.diasUltimoPedido+'d':'—'}</td>
+      <td><span class="tag ${tempTag(c.temp)}" style="color:${tempColor(c.temp)}">${tempLabel(c.temp)}</span></td>
+      <td style="white-space:nowrap">
+        ${c.whatsapp?`<a class="btn wpp sm" href="https://wa.me/${c.whatsapp}?text=${msgT(c)}" target="_blank" style="text-decoration:none;display:inline-block;margin-right:3px">📲</a>`:''}
+        <button class="btn ghost sm" data-edit-cli="${c.id}" style="margin-right:3px">✏️</button>
+        <span class="px" data-del-cli="${c.id}">✕</span>
+      </td></tr>`).join('')||`<tr><td colspan="8"><div class="empty">Nenhum cliente nesta categoria</div></td></tr>`}
+    </tbody></table></div>
+  </div>
   <div class="split">
-    <div class="panel"><div class="ph"><h3>Ranking</h3></div>
-      <table><thead><tr><th>Cliente</th><th class="n">Compras</th><th class="n">Total</th><th>Seg.</th></tr></thead><tbody>
-      ${lista.map(({c,freq,mon,seg})=>`<tr><td><b>${c.nome}</b></td><td class="n">${freq}</td><td class="n">${money(mon)}</td>
-        <td><span class="tag ${seg}">${seg}</span></td></tr>`).join('')||'<tr><td colspan=4><div class="empty">Sem clientes</div></td></tr>'}
-      </tbody></table></div>
-    <div>
-      <div class="panel" style="margin-bottom:14px"><div class="ph"><h3>Adicionar cliente / compra</h3></div>
-        <div class="field"><label>Nome</label><input class="inp" id="cl_nome" placeholder="nome"></div>
-        <div class="field"><label>WhatsApp</label><input class="inp mono" id="cl_wpp" placeholder="5547900000000"></div>
-        <div class="field"><label>Valor da compra (opcional)</label><input class="inp mono" type="number" id="cl_val" placeholder="R$"></div>
-        <button class="btn" id="addCli" style="width:100%">Adicionar</button></div>
-      <div class="panel"><div class="ph"><h3>Estratégias de fidelização</h3></div>
-        <ul style="margin:0;padding-left:16px;font-size:12.5px;color:var(--muted);line-height:1.8">
-          <li><b style="color:var(--cream)">Clube do 10º</b>: a cada 9 compras, a 10ª com brinde</li>
-          <li><b style="color:var(--cream)">VIPs</b>: acesso antecipado a lançamentos</li>
-          <li><b style="color:var(--cream)">Aniversário</b>: cupom no mês do cliente</li>
-          <li><b style="color:var(--cream)">Escalonada</b>: 30d→10% / 60d→15% / 90d→combo</li>
-        </ul></div>
+    <div class="panel"><div class="ph"><h3>Critérios de temperatura</h3></div>
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:13px">
+        <div style="padding:10px;border-radius:9px;background:rgba(236,106,44,.08);border:1px solid rgba(236,106,44,.2)">
+          <b style="color:var(--ember)">🔥 Quente</b> — pediu nos últimos 30 dias E tem 2+ compras, ou últimos 15 dias com 5+<br>
+          <span class="mini">→ Novidades, lançamentos, programa fidelidade</span></div>
+        <div style="padding:10px;border-radius:9px;background:rgba(224,168,62,.08);border:1px solid rgba(224,168,62,.2)">
+          <b style="color:var(--gold)">🌡️ Morna</b> — pediu entre 30 e 45 dias atrás<br>
+          <span class="mini">→ Cupom 10%, lembrete do item favorito</span></div>
+        <div style="padding:10px;border-radius:9px;background:rgba(95,160,192,.08);border:1px solid rgba(95,160,192,.2)">
+          <b style="color:var(--blue)">🧊 Fria</b> — pediu há mais de 45 dias<br>
+          <span class="mini">→ Cupom 15%, combo surpresa, oferta agressiva</span></div>
+      </div>
+    </div>
+    <div class="panel"><div class="ph"><h3>Adicionar cliente</h3></div>
+      <div class="field"><label>Nome</label><input class="inp" id="cl_nome" placeholder="nome"></div>
+      <div class="field"><label>WhatsApp</label><input class="inp mono" id="cl_wpp" placeholder="5547900000000"></div>
+      <div class="row c2">
+        <div class="field"><label>Faturado (R$)</label><input class="inp mono" type="number" id="cl_fat" placeholder="0"></div>
+        <div class="field"><label>Nº compras</label><input class="inp mono" type="number" id="cl_comp" placeholder="0"></div>
+      </div>
+      <button class="btn" id="addCli" style="width:100%">Adicionar</button>
     </div>
   </div>`;
-  $('#addCli').onclick=async()=>{const nome=$('#cl_nome').value.trim(),wpp=$('#cl_wpp').value.replace(/\D/g,''),val=+$('#cl_val').value||0;if(!nome){toast('Informe o nome',true);return;}
-    const compras=val>0?[{data:new Date().toISOString().slice(0,10),valor:val}]:[];S.clientes.push({id:uid(),nome,whatsapp:wpp,compras});await sheetSave();toast('Cliente adicionado');renderClientes();};}
 
+  $('#csvInput').onchange=async(e)=>{
+    const file=e.target.files[0];if(!file)return;
+    const texto=await file.text();
+    const novos=parsarCSVClientes(texto);
+    if(!novos.length){toast('Nenhum cliente encontrado no CSV',true);return;}
+    let add=0,upd=0;
+    novos.forEach(n=>{
+      const wl=n.whatsapp.replace(/\D/g,'');
+      const ex=S.clientes.find(c=>(c.whatsapp||'').replace(/\D/g,'')===wl&&wl||c.nome.toLowerCase()===n.nome.toLowerCase());
+      if(ex){Object.assign(ex,{...n,id:ex.id});upd++;}
+      else{S.clientes.push(n);add++;}
+    });
+    await sheetSave();toast(`✅ ${add} adicionados · ${upd} atualizados`);renderClientes();
+  };
+
+  if($('#dispTodos'))$('#dispTodos').onclick=()=>{
+    const com=lista.filter(c=>c.whatsapp);
+    if(!com.length){toast('Nenhum cliente com WhatsApp',true);return;}
+    com.slice(0,5).forEach(c=>window.open(`https://wa.me/${c.whatsapp}?text=${msgT(c)}`,'_blank'));
+    toast(`📲 ${Math.min(5,com.length)} conversas abertas${com.length>5?' · repita para os próximos':''}`);
+  };
+
+  $('#addCli').onclick=async()=>{
+    const nome=$('#cl_nome').value.trim();if(!nome){toast('Informe o nome',true);return;}
+    const wpp=$('#cl_wpp').value.replace(/\D/g,'');
+    const fat=+$('#cl_fat').value||0,comp=+$('#cl_comp').value||0;
+    S.clientes.push({id:uid(),nome,whatsapp:wpp,faturado:fat,compras:comp,
+      ticketMedio:comp>0?fat/comp:0,diasUltimoPedido:0,bairro:'',origem:'',comprasLegado:[]});
+    await sheetSave();toast('Cliente adicionado');renderClientes();
+  };
+  document.querySelectorAll('[data-edit-cli]').forEach(btn=>btn.onclick=()=>editarCliente(btn.dataset.editCli));
+  document.querySelectorAll('[data-del-cli]').forEach(x=>x.onclick=async()=>{
+    if(!confirm('Excluir cliente?'))return;
+    S.clientes=S.clientes.filter(c=>c.id!==x.dataset.delCli);
+    await sheetSave();toast('Cliente excluído');renderClientes();});
+}
+async function editarCliente(id){
+  const c=S.clientes.find(x=>x.id===id);if(!c)return;
+  const nome=prompt('Nome:',c.nome);if(nome===null)return;
+  const wpp=prompt('WhatsApp:',c.whatsapp||'');
+  c.nome=nome||c.nome;c.whatsapp=(wpp||'').replace(/\D/g,'');
+  await sheetSave();toast('Cliente atualizado');renderClientes();
+}
 // ============================================================
 //  CONFIG
 // ============================================================
