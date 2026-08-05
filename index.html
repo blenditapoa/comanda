@@ -1,5 +1,6 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <title>🍔 Comanda Central</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍔</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
@@ -11,7 +12,7 @@
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--cream);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 h1,h2,h3{font-family:'Archivo Black',sans-serif;font-weight:400;letter-spacing:-.01em;margin:0}
-button,input,select{font-family:inherit;cursor:pointer}
+button,input,select,textarea{font-family:inherit;cursor:pointer}
 ::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:8px}
 a{color:inherit}
 /* layout */
@@ -35,6 +36,7 @@ a{color:inherit}
 .side-foot button:hover{border-color:var(--gold);color:var(--gold)}
 .sync-btn{border-color:var(--line2) !important;color:var(--muted) !important}
 .sync-btn:hover{border-color:var(--blue) !important;color:var(--blue) !important}
+.vtag{font-size:10px;color:var(--muted2);text-align:center;letter-spacing:.08em;padding:2px 0}
 /* sync status dot */
 .sdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted2);margin-right:6px;vertical-align:middle}
 .sdot.ok{background:var(--green)} .sdot.err{background:var(--red)} .sdot.spin{background:var(--gold);animation:pulse 1s infinite}
@@ -70,6 +72,8 @@ a{color:inherit}
   padding:9px 11px;border-radius:8px;font-size:13.5px;outline:none;transition:.12s}
 .inp:focus{border-color:var(--ember);box-shadow:0 0 0 3px rgba(236,106,44,.13)}
 .inp.mono{font-family:'Space Mono'}
+.inp.req{border-color:var(--gold);background:rgba(224,168,62,.06)}
+.inp.err{border-color:var(--red);background:rgba(216,88,76,.07)}
 .row{display:grid;gap:10px}
 .c2{grid-template-columns:1fr 1fr}.c3{grid-template-columns:1fr 1fr 1fr}
 .slab{margin:14px 0 8px;font-size:11.5px;color:var(--ember);font-weight:700;letter-spacing:.07em;text-transform:uppercase;
@@ -86,20 +90,31 @@ a{color:inherit}
 .cline:last-child{border-bottom:none}
 .cline span:last-child{font-family:'Space Mono';font-weight:700}
 .cline.tot span:first-child{color:var(--cream);font-weight:700}
+.cline.aj span:first-child{color:var(--blue)}
+.cline.aj span:last-child{color:var(--blue)}
 .diffbox{margin-top:10px;padding:11px 14px;border-radius:10px;text-align:center;font-size:13.5px}
 .diffbox.ok{background:rgba(111,174,106,.12);border:1px solid rgba(111,174,106,.4);color:var(--green)}
-.diffbox.bad{background:rgba(216,88,76,.12);border:1px solid rgba(216,88,76,.4)}
+.diffbox.bad{background:rgba(216,88,76,.12);border:1px solid rgba(216,88,76,.4);color:#f0907f}
 .diffbox.bad b{font-family:'Space Mono';font-size:16px;color:#f0907f}
+.diffbox.sobra{background:rgba(111,174,106,.12);border:1px solid rgba(111,174,106,.45);color:#8fd08a}
+.diffbox.sobra b{font-family:'Space Mono';font-size:16px;color:#8fd08a}
+.bignum{font-family:'Space Mono';font-size:30px;font-weight:700;display:block;margin:4px 0 2px;letter-spacing:-.02em}
+.bignum.neg{color:var(--red)} .bignum.pos{color:var(--green)} .bignum.zero{color:var(--green)}
+.warnbox{background:rgba(224,168,62,.09);border:1px solid rgba(224,168,62,.4);border-radius:10px;
+  padding:11px 13px;margin:8px 0 10px;font-size:12.5px;color:#f0c878;line-height:1.5}
+.warnbox b{color:var(--gold)}
 /* table */
 table{width:100%;border-collapse:collapse}
 th{text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;padding:8px 9px;border-bottom:1px solid var(--line2)}
 td{padding:10px 9px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle}
 tr:last-child td{border-bottom:none}
 td.n,th.n{text-align:right;font-family:'Space Mono'}
+td.neg{color:var(--red)} td.pos{color:var(--green)}
 .tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700}
 .tag.lo{background:rgba(216,88,76,.16);color:#f0907f}
 .tag.ok{background:rgba(111,174,106,.16);color:#8fd08a}
 .tag.vip{background:rgba(236,106,44,.18);color:#f5a274}
+.tag.mid{background:rgba(224,168,62,.16);color:#f0c878}
 .tag.inat{background:rgba(125,108,82,.2);color:#b8a487}
 .tag.fiel{background:rgba(95,160,192,.16);color:#8fc8e0}
 .tag.novo{background:rgba(224,168,62,.14);color:#f0c878}
@@ -143,6 +158,9 @@ summary{cursor:pointer;font-size:12.5px;color:var(--muted);font-weight:600}
     <div class="brand"><div class="mark">🍔</div><div><b>Comanda<br>Central</b><small>Hamburgueria</small></div></div>
     <nav class="nav" id="nav">
       <button data-tab="fechamento" class="on"><span class="ic">📝</span>Fechamento</button>
+      <button data-tab="retiradas"><span class="ic">📤</span>Retirada do caixa</button>
+      <button data-tab="troco"><span class="ic">💰</span>Balanço do troco</button>
+      <button data-tab="metas"><span class="ic">🎯</span>Metas</button>
       <button data-tab="balanco"><span class="ic">📊</span>Balanço</button>
       <button data-tab="estoque"><span class="ic">📦</span>Estoque</button>
       <button data-tab="fornecedores"><span class="ic">🚚</span>Fornecedores</button>
@@ -153,6 +171,7 @@ summary{cursor:pointer;font-size:12.5px;color:var(--muted);font-weight:600}
       <div style="font-size:11.5px;color:var(--muted);padding:4px 8px"><span class="sdot" id="sdot"></span><span id="slabel">Sem sync</span></div>
       <button class="sync-btn" onclick="syncNow()" style="cursor:pointer">↻ Sincronizar agora</button>
       <button id="backupBtn">🛟 Backup / Restaurar</button>
+      <div class="vtag" id="vtag"></div>
     </div>
   </aside>
   <main class="main">
@@ -164,21 +183,50 @@ summary{cursor:pointer;font-size:12.5px;color:var(--muted);font-weight:600}
 
 <script>
 // ============================================================
-//  COMANDA CENTRAL v2.0
+//  COMANDA CENTRAL v2.1
 //  - Persistência tripla: memória + localStorage + Google Sheets
 //  - Sync por MESCLAGEM (nunca sobrescreve/perde registros)
 //  - Datas normalizadas (corrige fuso e formatos quebrados)
 //  - Balanço completo: dia/semana/mês, pagamentos, motoboy,
 //    fiado, voucher, diferença de caixa, melhores dias
+//  NOVO na 2.1:
+//  - Retirada do caixa (aba própria, entra no fechamento)
+//  - Balanço do troco com destino do movimento
+//  - Motoboy dinheiro + PIX lado a lado
+//  - Metas e ponto de equilíbrio
+//  - Chave de acesso (a URL sozinha não abre mais os dados)
 // ============================================================
-const APP_VERSION = '2.0';
+const APP_VERSION = '2.1';
 let SHEET_URL = localStorage.getItem('sheetUrl') || 'https://script.google.com/macros/s/AKfycbyX44cbwOp7d5ksMQekI_5W_z_fxHf9ZLN3gygKCxctFONFQP0ikgvx3s9cZ0k9qzwgfQ/exec';
+
+// ------------------------------------------------------------
+//  CHAVE DE ACESSO
+//  Este arquivo é PÚBLICO no GitHub Pages — a URL acima está à
+//  vista de qualquer um. A chave secreta NUNCA fica aqui: ela é
+//  colada uma vez em cada aparelho autorizado e guardada só no
+//  navegador daquele aparelho. Sem ela o backend recusa tudo.
+// ------------------------------------------------------------
+let ACCESS_KEY = '';
+try { ACCESS_KEY = localStorage.getItem('ccChave') || ''; } catch(e) {}
+function setAccessKey(k){ ACCESS_KEY = (k||'').trim(); try{ localStorage.setItem('ccChave', ACCESS_KEY); }catch(e){} }
+function urlK(base){ return base + (base.indexOf('?')>-1?'&':'?') + 'k=' + encodeURIComponent(ACCESS_KEY); }
+let precisaChave = false;    // backend recusou por chave inválida
+let apiDesprotegida = false; // backend está sem chave configurada
+function pedirChave(){
+  const aviso = ACCESS_KEY ? ' (a chave deste aparelho não foi aceita)' : '';
+  const k = prompt('🔐 Chave de acesso do Comanda Central' + aviso +
+    '\n\nPegue na planilha COMANDA → menu 🍔 Comanda Central → Gerar chave de acesso do app.\n' +
+    'Ela fica guardada só neste aparelho.\n\nSeus dados locais continuam salvos aqui de qualquer forma.', '');
+  if (k === null) return;
+  setAccessKey(k);
+  location.reload();
+}
 
 // ============================================================
 //  ESTADO
 // ============================================================
-let S = { fechamentos:[], produtos:[], insumos:[], fornecedores:[], clientes:[] };
-const KEYS = ['fechamentos','produtos','insumos','fornecedores','clientes'];
+let S = { fechamentos:[], retiradas:[], config:[], produtos:[], insumos:[], fornecedores:[], clientes:[] };
+const KEYS = ['fechamentos','retiradas','config','produtos','insumos','fornecedores','clientes'];
 
 // ============================================================
 //  DATAS — normalização definitiva
@@ -225,11 +273,22 @@ function normFech(f){
   out.obs = (f.obs === 0 || f.obs == null) ? '' : String(f.obs);
   out.totalVendas = +f.totalVendas || 0;
   ['trocoInicio','trocoFinal','motoboyRepasse','motoboyPix'].forEach(k=> out[k] = +f[k] || 0);
+  // campos da v2.1 — preservados sem alterar registros antigos
+  out.versaoCalculo = +f.versaoCalculo || 0;
+  out.destinoTroco = (f.destinoTroco === 0 || f.destinoTroco == null) ? '' : String(f.destinoTroco);
+  out.obsTrocoInicio = (f.obsTrocoInicio === 0 || f.obsTrocoInicio == null) ? '' : String(f.obsTrocoInicio);
+  out.obsTrocoFinal = (f.obsTrocoFinal === 0 || f.obsTrocoFinal == null) ? '' : String(f.obsTrocoFinal);
   const c = {}; CONF_CAMPOS.forEach(cc=> c[cc.id] = +((f.conf||{})[cc.id]) || 0);
   out.conf = c;
   out.saidas = Array.isArray(f.saidas) ? f.saidas : [];
   out.vendas = Array.isArray(f.vendas) ? f.vendas : [];
   return out;
+}
+function normRetirada(r){
+  if (!r || typeof r !== 'object') return r;
+  return {...r, data: normData(r.data), valor: +r.valor || 0,
+    obs: (r.obs === 0 || r.obs == null) ? '' : String(r.obs),
+    operador: (r.operador === 0 || r.operador == null) ? '' : String(r.operador)};
 }
 function isRegistroReal(x){ return x && typeof x.id === 'string' && x.id.length > 0; }
 
@@ -243,6 +302,7 @@ function lsLoad(){
     if (!d) return false;
     KEYS.forEach(k=>{ if (Array.isArray(d[k])) S[k] = d[k]; });
     S.fechamentos = S.fechamentos.map(normFech).filter(isRegistroReal);
+    S.retiradas = (S.retiradas||[]).map(normRetirada).filter(isRegistroReal);
     return true;
   }catch(e){ return false; }
 }
@@ -293,14 +353,23 @@ async function sheetLoad() {
   if (!SHEET_URL) return false;
   setSyncStatus('loading');
   try {
-    const r = await fetch(SHEET_URL + '?action=load', { redirect: 'follow' });
+    const r = await fetch(urlK(SHEET_URL + '?action=load'), { redirect: 'follow' });
     const j = await r.json();
+    if (!j.ok && j.error === 'CHAVE_INVALIDA') {
+      precisaChave = true;
+      setSyncStatus('err', 'Chave de acesso necessária');
+      pedirChave();
+      return false;
+    }
     if (j.ok && j.data) {
+      precisaChave = false;
+      apiDesprotegida = !!j.semChave;
       const del = getDeleted();
       let pendentes = 0;
       KEYS.forEach(k => {
         let remote = (j.data[k]||[]);
         if (k === 'fechamentos') remote = remote.map(normFech);
+        if (k === 'retiradas')   remote = remote.map(normRetirada);
         remote = remote.filter(x => isRegistroReal(x) && !del.has(x.id));
         const local = (S[k]||[]).filter(x => isRegistroReal(x) && !del.has(x.id));
         const { merged, extras } = mergeColl(local, remote);
@@ -323,9 +392,10 @@ async function sheetSave() {
   // 1) SEMPRE salva local primeiro — o dado nunca se perde
   lsSave(); lsSnapshot();
   if (!SHEET_URL) return;
+  if (precisaChave) { setSyncStatus('err', 'Chave necessária — salvo no dispositivo'); return; }
   setSyncStatus('loading', 'Salvando...');
   try {
-    await fetch(SHEET_URL, { method:'POST', mode:'no-cors', body: JSON.stringify(S) });
+    await fetch(SHEET_URL, { method:'POST', mode:'no-cors', body: JSON.stringify(Object.assign({ _k: ACCESS_KEY }, S)) });
     clearTimeout(_verifyTimer);
     _verifyTimer = setTimeout(verifySave, 3500);
   } catch(e) {
@@ -336,8 +406,13 @@ async function sheetSave() {
 // 2) Confirma que o Sheets realmente gravou; se não, reenvia sozinho
 async function verifySave(){
   try{
-    const r = await fetch(SHEET_URL + '?action=load', { redirect:'follow' });
+    const r = await fetch(urlK(SHEET_URL + '?action=load'), { redirect:'follow' });
     const j = await r.json();
+    if (!j.ok && j.error === 'CHAVE_INVALIDA') {
+      precisaChave = true;
+      setSyncStatus('err', 'Chave inválida — dados seguros no dispositivo');
+      return;
+    }
     const remoteIds = new Set(((j.data&&j.data.fechamentos)||[]).map(x=>x.id));
     const faltando = (S.fechamentos||[]).filter(f => isRegistroReal(f) && !remoteIds.has(f.id));
     if (faltando.length === 0) {
@@ -346,7 +421,7 @@ async function verifySave(){
     } else if (_saveRetries < 4) {
       _saveRetries++;
       setSyncStatus('loading', 'Confirmando... tentativa ' + _saveRetries);
-      await fetch(SHEET_URL, { method:'POST', mode:'no-cors', body: JSON.stringify(S) });
+      await fetch(SHEET_URL, { method:'POST', mode:'no-cors', body: JSON.stringify(Object.assign({ _k: ACCESS_KEY }, S)) });
       clearTimeout(_verifyTimer);
       _verifyTimer = setTimeout(verifySave, 4500);
     } else {
@@ -371,13 +446,16 @@ async function syncNow() {
 // ============================================================
 const $ = s => document.querySelector(s);
 const money = n => 'R$ ' + (Number(n)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+// valor com sinal explícito: -R$ 100,00 (falta) / +R$ 100,00 (sobra)
+const moneySign = n => (Number(n)>0.0001?'+':Number(n)<-0.0001?'-':'') + money(Math.abs(Number(n)||0));
 const uid = () => Math.random().toString(36).slice(2,9);
 const insumo = id => S.insumos.find(i=>i.id===id);
 const produto = id => S.produtos.find(p=>p.id===id);
+const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 function toast(msg, err) {
   const t = $('#toast'); t.textContent = msg;
   t.className = 'toast show' + (err?' err':'');
-  clearTimeout(t._t); t._t = setTimeout(()=>t.className='toast', 2500);
+  clearTimeout(t._t); t._t = setTimeout(()=>t.className='toast', err?4500:2500);
 }
 // CAMPOS DA CONFERÊNCIA (lógica corrigida conforme comanda real)
 const CONF_CAMPOS = [
@@ -386,7 +464,7 @@ const CONF_CAMPOS = [
   {id:'pg_online',     label:'Pago Online'},
   {id:'pg_voucher',    label:'Online / Voucher'},
   {id:'pg_onlinepix',  label:'Online via PIX'},
-  {id:'pg_dinheiro',   label:'Dinheiro'},
+  {id:'pg_dinheiro',   label:'Dinheiro em mãos'},
   {id:'pg_motoboy',    label:'Motoboy'},
   {id:'pg_colaborador',label:'Colaborador / Fiado'},
 ];
@@ -399,7 +477,148 @@ function somaConf(r) { return CONF_CAMPOS.reduce((a,c)=>a+(r[c.id]||0), 0); }
 function custoProd(p) { return (p.ficha||[]).reduce((a,[iid,q])=>{const i=insumo(iid);return a+(i?i.custo*q:0);}, 0); }
 function cmvFech(f) { return (f.vendas||[]).reduce((a,v)=>{const p=produto(v.pid);return a+(p?custoProd(p)*v.qtd:0);}, 0); }
 function fatF(f) { return +f.totalVendas||0; }
-function diffCaixa(f){ return round2(fatF(f) - somaConf(f.conf||{})); }
+
+// ============================================================
+//  MOTOR DE CONFERÊNCIA DE CAIXA
+// ============================================================
+// Retiradas de uma data (aba própria) + saídas legadas gravadas no fechamento
+function retiradasDoDia(data) {
+  const d = normData(data);
+  if (!d) return [];
+  return (S.retiradas||[]).filter(r => normData(r.data) === d);
+}
+function totalRetiradasDoDia(data) { return round2(retiradasDoDia(data).reduce((a,r)=>a+(+r.valor||0), 0)); }
+function totalSaidasLegado(f) { return round2(((f && f.saidas) || []).reduce((a,s)=>a+(+s.valor||0), 0)); }
+
+// REGRA v2 — validada contra os 39 fechamentos manuais reais da planilha
+//
+//   Total conferido = recebimentos + retiradas do caixa
+//                   + motoboy em dinheiro + (troco final − troco início)
+//   Diferença       = Total conferido − Total de vendas
+//                     negativo = FALTA   |   positivo = SOBRA
+//
+// A variação do troco entra com sinal natural:
+//   • troco DIMINUIU → esse dinheiro NÃO veio de venda (cobriu motoboy ou
+//     retirada, que já estão somados acima) → subtrai, senão conta 2x
+//   • troco AUMENTOU → dinheiro de venda ficou na gaveta como troco → soma
+//
+// IMPORTANTE: "Dinheiro em mãos" é o valor LÍQUIDO, depois de pagar o
+// motoboy e depois de deixar o troco certo.
+function calcFechamento({soma, total, retiradas, motoboyDinheiro, trocoInicio, trocoFinal}) {
+  soma = +soma||0; total = +total||0; retiradas = +retiradas||0;
+  motoboyDinheiro = +motoboyDinheiro||0;
+  trocoInicio = +trocoInicio||0; trocoFinal = +trocoFinal||0;
+
+  const trocoDelta   = round2(trocoFinal - trocoInicio);
+  const trocoUsado   = Math.max(0, -trocoDelta);
+  const trocoReforco = Math.max(0,  trocoDelta);
+
+  const somaAjustada = round2(soma + retiradas + motoboyDinheiro + trocoDelta);
+  const diff = round2(somaAjustada - total);
+  const ok = Math.abs(diff) < 0.02;
+  return {
+    soma:round2(soma), total:round2(total), retiradas:round2(retiradas),
+    motoboyDinheiro:round2(motoboyDinheiro), trocoDelta, trocoUsado, trocoReforco,
+    somaAjustada, diff, ok, legado:false,
+    status: ok ? 'ok' : (diff < 0 ? 'falta' : 'sobra'),
+    texto: ok ? 'Caixa fechado certinho'
+              : (diff < 0 ? 'Falta de ' + money(Math.abs(diff))
+                          : 'Sobra de ' + money(Math.abs(diff)))
+  };
+}
+
+// Registros salvos ANTES da v2 seguiam outro processo: o campo Dinheiro era
+// lançado BRUTO (antes de pagar o motoboy). Somar o repasse neles criaria
+// sobra falsa. Por isso o histórico continua sendo conferido pela regra antiga.
+function calcLegado(f) {
+  const soma = round2(somaConf(f.conf||{}));
+  const total = round2(fatF(f));
+  const retiradas = round2(totalRetiradasDoDia(f.data) + totalSaidasLegado(f));
+  const somaAjustada = round2(soma + retiradas);
+  const diff = round2(somaAjustada - total);
+  const ok = Math.abs(diff) < 0.02;
+  return { soma, total, retiradas, motoboyDinheiro:0, trocoDelta:0, trocoUsado:0, trocoReforco:0,
+    somaAjustada, diff, ok, legado:true,
+    status: ok?'ok':(diff<0?'falta':'sobra'),
+    texto: ok ? 'Caixa fechado certinho'
+              : (diff<0 ? 'Falta de ' + money(Math.abs(diff)) : 'Sobra de ' + money(Math.abs(diff))) };
+}
+
+function calcFechamentoSalvo(f) {
+  if (!(+f.versaoCalculo >= 2)) return calcLegado(f);
+  return calcFechamento({
+    soma: somaConf(f.conf||{}),
+    total: fatF(f),
+    retiradas: totalRetiradasDoDia(f.data) + totalSaidasLegado(f),
+    motoboyDinheiro: +f.motoboyRepasse||0,
+    trocoInicio: +f.trocoInicio||0,
+    trocoFinal: +f.trocoFinal||0
+  });
+}
+// Diferença de caixa: NEGATIVO = falta, POSITIVO = sobra
+function diffCaixa(f){ return calcFechamentoSalvo(f).diff; }
+
+// Troco final do último fechamento ANTERIOR à data informada
+function trocoFinalAnterior(data, ignorarId) {
+  const d = normData(data);
+  if (!d) return null;
+  const ant = (S.fechamentos||[])
+    .filter(f => f.id !== ignorarId && normData(f.data) && normData(f.data) < d)
+    .sort((a,b)=>normData(b.data).localeCompare(normData(a.data)))[0];
+  return ant ? { valor:+ant.trocoFinal||0, data:ant.data, caixa:ant.caixa||'' } : null;
+}
+
+// ============================================================
+//  METAS E PONTO DE EQUILÍBRIO
+// ============================================================
+const PARAMS = [
+  {k:'metaMes',    label:'Meta de faturamento do mês', un:'R$', ajuda:'quanto você quer faturar neste mês'},
+  {k:'custoFixo',  label:'Custo fixo mensal',          un:'R$', ajuda:'aluguel, folha, energia, contador, marketing, gás, alarme, limpeza'},
+  {k:'cmv',        label:'CMV',                        un:'%',  ajuda:'custo da mercadoria vendida sobre o faturamento'},
+  {k:'taxas',      label:'Taxas e impostos',           un:'%',  ajuda:'Simples + maquininha + comissão de apps'},
+  {k:'limiteFalta',label:'Alerta de falta acima de',   un:'R$', ajuda:'acima disso o relatório do grupo sai com alerta vermelho'},
+];
+function cfg(chave, padrao) {
+  const r = (S.config||[]).find(x=>x.chave===chave);
+  const v = r ? +r.valor : NaN;
+  return isNaN(v) ? (padrao===undefined?0:padrao) : v;
+}
+function setCfg(chave, valor) {
+  const r = (S.config||[]).find(x=>x.chave===chave);
+  if (r) r.valor = valor; else S.config.push({id:uid(), chave, valor});
+}
+function calcMetas(refData) {
+  const metaMes = cfg('metaMes'), custoFixo = cfg('custoFixo');
+  const cmv = cfg('cmv'), taxas = cfg('taxas');
+  const mc = Math.max(0, 1 - (cmv/100) - (taxas/100));
+  const pe = mc > 0 ? custoFixo / mc : 0;
+
+  const ref = normData(refData) || hojeStr();
+  const mes = ref.slice(0,7);
+  const doMes = (S.fechamentos||[]).filter(f=>normData(f.data).slice(0,7)===mes && fatF(f)>0);
+  const acum = round2(doMes.reduce((a,f)=>a+fatF(f), 0));
+
+  const diasNoMes = new Date(+mes.slice(0,4), +mes.slice(5,7), 0).getDate();
+  const diaAtual = +ref.slice(8,10);
+  const diasRestantes = Math.max(0, diasNoMes - diaAtual);
+  const diasComVenda = new Set(doMes.map(f=>f.data)).size;
+  const mediaDia = diasComVenda ? acum/diasComVenda : 0;
+
+  const faltaMeta = Math.max(0, metaMes - acum);
+  const faltaPE = Math.max(0, pe - acum);
+  return {
+    metaMes, custoFixo, cmv, taxas, mc, pe, mes, acum,
+    diasNoMes, diaAtual, diasRestantes, diasComVenda, mediaDia,
+    projecao: mediaDia * diasNoMes,
+    pctMeta: metaMes>0 ? acum/metaMes*100 : 0,
+    pctPE:   pe>0      ? acum/pe*100      : 0,
+    faltaMeta, faltaPE,
+    precisaDiaMeta: diasRestantes>0 ? faltaMeta/diasRestantes : faltaMeta,
+    precisaDiaPE:   diasRestantes>0 ? faltaPE/diasRestantes   : faltaPE,
+    passouPE: pe>0 && acum >= pe,
+    configurado: metaMes>0 || custoFixo>0
+  };
+}
 
 // ============================================================
 //  SEED (dados de exemplo — só aparece se estiver TUDO vazio)
@@ -417,6 +636,8 @@ function seed() {
   S.fornecedores = [];
   S.clientes = [];
   S.fechamentos = [];
+  S.retiradas = [];
+  S.config = [];
 }
 
 // ============================================================
@@ -431,6 +652,7 @@ $('#nav').addEventListener('click', e => {
 });
 $('#menuBtn').addEventListener('click',()=>$('#side').classList.toggle('open'));
 $('#backupBtn').addEventListener('click', mostrarBackups);
+$('#vtag').textContent = 'v' + APP_VERSION;
 
 function mostrarBackups(){
   let h = [];
@@ -452,7 +674,8 @@ function mostrarBackups(){
 
 function render() {
   try {
-    ({fechamento:renderFechamento,balanco:renderBalanco,estoque:renderEstoque,
+    ({fechamento:renderFechamento,retiradas:renderRetiradas,troco:renderTroco,metas:renderMetas,
+      balanco:renderBalanco,estoque:renderEstoque,
       fornecedores:renderFornecedores,clientes:renderClientes,config:renderConfig}[tab])();
   } catch(err) {
     view.innerHTML = '<div class="panel"><div class="alert"><span>⚠️</span><div><b>Erro ao montar esta tela.</b> '+
@@ -464,7 +687,7 @@ function render() {
 // ============================================================
 //  FECHAMENTO
 // ============================================================
-let draftSaidas = [], draftVendas = [], editandoId = null;
+let draftVendas = [], editandoId = null;
 
 function renderFechamento() {
   if (!draftVendas.length) draftVendas = S.produtos.map(p=>({pid:p.id,qtd:0}));
@@ -472,7 +695,7 @@ function renderFechamento() {
   const modoEdicao = !!editandoId;
   view.innerHTML = `
   <div class="head"><div><div class="ey">Final de turno</div><h1>${modoEdicao?'Editando fechamento':'Fechamento de caixa'}</h1>
-  <p>Some os campos abaixo — o total precisa bater com o <b>Total de vendas</b>. O sistema confere na hora.</p></div></div>
+  <p>Recebimentos + retiradas do caixa + motoboy em dinheiro + movimento do troco precisam bater com o <b>Total de vendas</b>. O sistema confere na hora.</p></div></div>
   <div class="split">
     <div class="panel">
       <div class="ph"><h3>${modoEdicao?'✏️ Editando registro':'Comanda do dia'}</h3>${modoEdicao?'<button class="btn ghost sm" id="cancelEdit">✕ Cancelar edição</button>':''}</div>
@@ -482,24 +705,59 @@ function renderFechamento() {
       </div>
       <div class="slab">Recebimentos do dia</div>
       <div class="row c2">
-        ${CONF_CAMPOS.map(c=>`<div class="field"><label>${c.label}</label><input class="inp mono" type="number" id="${c.id}" placeholder="0"></div>`).join('')}
+        ${CONF_CAMPOS.map(c=>`<div class="field"><label>${c.label}</label><input class="inp mono" type="number" step="0.01" id="${c.id}" placeholder="0"></div>`).join('')}
       </div>
+      <div class="mini" style="margin:-2px 0 6px;color:var(--muted2)">💵 <b>Dinheiro em mãos</b> = o que sobrou na gaveta <b>depois</b> de pagar o motoboy e <b>depois</b> de deixar o troco certo.</div>
       <div class="slab">Total e conferência</div>
       <div class="field"><label>Total de vendas (sistema/maquininha)</label>
-        <input class="inp mono" type="number" id="f_total" placeholder="0" style="font-size:18px;padding:12px;border-color:var(--line2)">
+        <input class="inp mono" type="number" step="0.01" id="f_total" placeholder="0" style="font-size:18px;padding:12px;border-color:var(--line2)">
       </div>
       <div id="conf_box"></div>
+
+      <div class="slab">💰 Balanço do troco</div>
+      <div id="troco_alerta_ini"></div>
+      <div class="row c3">
+        <div class="field"><label>Troco início</label><input class="inp mono" type="number" step="0.01" id="f_ti" placeholder="0"></div>
+        <div class="field"><label>Troco final</label><input class="inp mono" type="number" step="0.01" id="f_tf" placeholder="0"></div>
+        <div class="field"><label>Movimento</label><input class="inp mono" id="f_tdelta" value="R$ 0,00" readonly style="background:var(--panel2)"></div>
+      </div>
+      <div class="field" id="wrap_obs_ti" style="display:none">
+        <label style="color:var(--gold)">⚠️ Justifique a diferença do troco inicial <b>(obrigatório)</b></label>
+        <input class="inp req" id="f_obs_ti" placeholder="ex: reposto R$ 20 do cofre / faltou troco na gaveta">
+      </div>
+      <div class="row c2" id="wrap_obs_tf" style="display:none">
+        <div class="field"><label style="color:var(--gold)">⚠️ Para onde foi o troco? <b>(obrigatório)</b></label>
+          <select class="inp req" id="f_dest_troco">
+            <option value="">— selecione —</option>
+            <option value="motoboy">🛵 Pagamento do motoboy</option>
+            <option value="retiradas">📤 Completar retirada do caixa</option>
+            <option value="reforco">➕ Reforço de troco (entrou dinheiro)</option>
+            <option value="outro">✏️ Outro (descrever)</option>
+          </select>
+        </div>
+        <div class="field"><label>Detalhe</label>
+          <input class="inp" id="f_obs_tf" placeholder="ex: faltaram R$ 5 do frete, peguei do troco">
+        </div>
+      </div>
+      <div id="troco_alerta_fim"></div>
+
+      <div class="slab">🛵 Motoboy</div>
+      <div class="row c3">
+        <div class="field"><label>Pago em dinheiro (do caixa)</label><input class="inp mono" type="number" step="0.01" id="f_mrep" placeholder="0"></div>
+        <div class="field"><label>Pago em PIX (conta)</label><input class="inp mono" type="number" step="0.01" id="f_mpix" placeholder="0"></div>
+        <div class="field"><label>Total ao motoboy</label><input class="inp mono" id="f_mtot" value="R$ 0,00" readonly style="color:var(--gold);background:var(--panel2)"></div>
+      </div>
+      <div class="mini" style="margin:-4px 0 6px;color:var(--muted2)">O valor em <b>dinheiro</b> volta para a conta do caixa. O <b>PIX</b> aparece no total, mas não entra nem sai do caixa.</div>
+
+      <div class="slab">📤 Retiradas do caixa do dia</div>
+      <div id="retirada_box"></div>
+      <div class="row c2" style="align-items:end">
+        <div class="field" style="margin-bottom:0"><label>Valor retirado</label><input class="inp mono" type="number" step="0.01" id="rt_valor" placeholder="0"></div>
+        <div class="field" style="margin-bottom:0"><label>Motivo <b style="color:var(--gold)">(obrigatório)</b></label><input class="inp" id="rt_obs" placeholder="ex: 2 sacos de gelo"></div>
+      </div>
+      <button class="btn ghost sm" id="addRetirada" style="margin:8px 0 12px">+ registrar retirada</button>
+
       <div class="slab">Informações adicionais</div>
-      <div class="row c2">
-        <div class="field"><label>Troco início</label><input class="inp mono" type="number" id="f_ti" placeholder="0"></div>
-        <div class="field"><label>Troco final</label><input class="inp mono" type="number" id="f_tf" placeholder="0"></div>
-      </div>
-      <div class="row c2">
-        <div class="field"><label>Repasse fretes ao motoboy</label><input class="inp mono" type="number" id="f_mrep" placeholder="0"></div>
-        <div class="field"><label>Motoboy pago via PIX (conta)</label><input class="inp mono" type="number" id="f_mpix" placeholder="0"></div>
-      </div>
-      <div id="saida_box"></div>
-      <button class="btn ghost sm" id="addSaida" style="margin:4px 0 12px">+ outra saída em dinheiro</button>
       <div class="field"><label>Observações</label><input class="inp" id="f_obs" placeholder="ocorrências do turno"></div>
       <details><summary>Vendas por produto (opcional — para baixa de estoque)</summary><div id="vendas_box" style="margin-top:8px"></div></details>
       <button class="btn ${modoEdicao?'gold':''}" id="salvar_btn" style="width:100%;margin-top:16px;padding:13px">${modoEdicao?'✔ Salvar alterações':'Salvar fechamento'}</button>
@@ -516,7 +774,7 @@ function renderFechamento() {
     </div>
   </div>`;
 
-  renderVendasBox(); renderSaidaBox(); atualizarConf();
+  renderVendasBox();
 
   if (editandoId) {
     const f = S.fechamentos.find(x=>x.id===editandoId);
@@ -529,18 +787,23 @@ function renderFechamento() {
       $('#f_tf').value = f.trocoFinal||0;
       $('#f_mrep').value = f.motoboyRepasse||0;
       $('#f_mpix').value = f.motoboyPix||0;
+      $('#f_obs_ti').value = f.obsTrocoInicio||'';
+      $('#f_obs_tf').value = f.obsTrocoFinal||'';
+      $('#f_dest_troco').value = f.destinoTroco||'';
       $('#f_obs').value = f.obs||'';
-      draftSaidas = (f.saidas||[]).map(s=>({...s}));
       draftVendas = (f.vendas||[]).map(v=>({...v}));
-      renderSaidaBox(); renderVendasBox();
+      renderVendasBox();
     }
-    $('#cancelEdit').onclick = ()=>{ editandoId=null; draftSaidas=[]; draftVendas=[]; render(); };
+    $('#cancelEdit').onclick = ()=>{ editandoId=null; draftVendas=[]; render(); };
   }
 
-  [...document.querySelectorAll('.inp.mono')].forEach(el=>el.addEventListener('input', atualizarConf));
-  $('#f_total').addEventListener('input', atualizarConf);
+  ['f_total','f_ti','f_tf','f_mrep','f_mpix'].concat(CONF_CAMPOS.map(c=>c.id))
+    .forEach(id=>{ const el=$('#'+id); if(el) el.addEventListener('input', atualizarConf); });
+  $('#f_data').addEventListener('change', ()=>{ renderRetiradaBox(); atualizarConf(); });
+
+  renderRetiradaBox();
   atualizarConf();
-  $('#addSaida').onclick = ()=>{draftSaidas.push({desc:'',valor:''});renderSaidaBox();};
+  $('#addRetirada').onclick = addRetiradaRapida;
   $('#salvar_btn').onclick = salvarFechamento;
   renderUltimos();
 }
@@ -549,31 +812,67 @@ function atualizarConf() {
   const r = lerConf();
   const soma = somaConf(r);
   const total = +$('#f_total')?.value || 0;
-  const diff = total - soma;
-  const ok = Math.abs(diff) < 0.02;
+  const data = $('#f_data')?.value || '';
+  const ti = +$('#f_ti')?.value || 0, tf = +$('#f_tf')?.value || 0;
+  const mrep = +$('#f_mrep')?.value || 0, mpix = +$('#f_mpix')?.value || 0;
+  const fEdit = editandoId ? S.fechamentos.find(x=>x.id===editandoId) : null;
+  const retiradas = totalRetiradasDoDia(data) + totalSaidasLegado(fEdit);
 
-  $('#conf_box').innerHTML = `<div class="diffbox ${ok?'ok':'bad'}" style="margin-bottom:10px">
-    ${ok ? `✅ Conferência OK — soma = ${money(soma)}` :
-    `<div>Soma dos recebimentos: <b style="font-family:'Space Mono'">${money(soma)}</b></div>
-     <div style="margin-top:4px">Total de vendas: <b style="font-family:'Space Mono'">${money(total)}</b></div>
-     <div style="margin-top:6px">⚠️ Diferença: <b>${money(diff)}</b></div>`}
+  const c = calcFechamento({soma, total, retiradas, motoboyDinheiro:mrep, trocoInicio:ti, trocoFinal:tf});
+
+  if ($('#f_mtot')) $('#f_mtot').value = money(mrep + mpix);
+  if ($('#f_tdelta')) {
+    $('#f_tdelta').value = moneySign(c.trocoDelta);
+    $('#f_tdelta').style.color = c.trocoDelta<-0.009?'var(--red)':c.trocoDelta>0.009?'var(--green)':'var(--muted)';
+  }
+
+  // travas do troco
+  const ant = trocoFinalAnterior(data, editandoId);
+  const divergeIni = !!ant && Math.abs(ti - ant.valor) > 0.009;
+  const divergeFim = Math.abs(tf - ti) > 0.009;
+
+  $('#troco_alerta_ini').innerHTML = divergeIni
+    ? `<div class="warnbox">⚠️ O troco inicial (<b>${money(ti)}</b>) está diferente do troco final de ${fmtData(ant.data)} (<b>${money(ant.valor)}</b>) — diferença de <b>${moneySign(ti-ant.valor)}</b>. Descreva o motivo abaixo.</div>` : '';
+  $('#troco_alerta_fim').innerHTML = divergeFim
+    ? `<div class="warnbox">⚠️ Movimento do troco: <b>${moneySign(c.trocoDelta)}</b>. ${c.trocoUsado>0
+        ? `Saíram <b>${money(c.trocoUsado)}</b> do troco — esse dinheiro <b>não veio de venda</b>, então cobre o motoboy ou a retirada no fechamento.`
+        : `Entraram <b>${money(c.trocoReforco)}</b> no troco — dinheiro de venda que ficou na gaveta.`} Diga para onde foi.</div>` : '';
+  $('#wrap_obs_ti').style.display = divergeIni ? '' : 'none';
+  $('#wrap_obs_tf').style.display = divergeFim ? '' : 'none';
+
+  const cls = c.ok ? 'ok' : (c.diff<0 ? 'bad' : 'sobra');
+  const sinal = c.ok ? 'zero' : (c.diff<0 ? 'neg' : 'pos');
+  $('#conf_box').innerHTML = `<div class="diffbox ${cls}" style="margin-bottom:10px">
+    ${c.ok
+      ? `✅ Conferência OK — total conferido ${money(c.somaAjustada)}`
+      : `<div class="mini" style="color:inherit">Conferido ${money(c.somaAjustada)} · Vendas ${money(c.total)}</div>
+         <span class="bignum ${sinal}">${moneySign(c.diff)}</span>
+         <div style="font-weight:700">${c.diff<0?'❌ FALTA de ':'🟢 SOBRA de '}${money(Math.abs(c.diff))}</div>`}
   </div>`;
 
+  const linhaAj = (lab,val)=> Math.abs(val)>0.009 ? `<div class="cline aj"><span>+ ${lab}</span><span>${money(val)}</span></div>` : '';
   $('#conf_resumo').innerHTML =
-    CONF_CAMPOS.map(c=>`<div class="cline"><span>${c.label}</span><span>${money(r[c.id]||0)}</span></div>`).join('')+
-    `<div class="cline tot"><span>Soma total</span><span style="color:var(--ember)">${money(soma)}</span></div>
-     <div class="cline tot"><span>Total vendas</span><span>${money(total)}</span></div>
-     <div class="diffbox ${ok?'ok':'bad'}" style="margin-top:10px">
-       ${ok?`✅ Caixa confere`:`⚠️ Diferença: <b>${money(diff)}</b>`}
-     </div>`;
+    CONF_CAMPOS.map(x=>`<div class="cline"><span>${x.label}</span><span>${money(r[x.id]||0)}</span></div>`).join('')+
+    `<div class="cline tot"><span>Soma recebimentos</span><span style="color:var(--ember)">${money(c.soma)}</span></div>`+
+    linhaAj('Retiradas do caixa', c.retiradas)+
+    linhaAj('Motoboy em dinheiro', c.motoboyDinheiro)+
+    (Math.abs(c.trocoDelta)>0.009
+      ? `<div class="cline aj"><span>${c.trocoDelta<0?'− Troco consumido':'+ Troco reforçado'}</span><span>${moneySign(c.trocoDelta)}</span></div>` : '')+
+    `<div class="cline tot"><span>Total conferido</span><span style="color:var(--gold)">${money(c.somaAjustada)}</span></div>
+     <div class="cline tot"><span>Total de vendas</span><span>${money(c.total)}</span></div>
+     <div class="diffbox ${cls}" style="margin-top:10px">
+       ${c.ok?'✅ Caixa fechado certinho'
+             :`<span class="bignum ${sinal}">${moneySign(c.diff)}</span><div style="font-weight:700">${c.texto}</div>`}
+     </div>
+     ${mpix>0?`<div class="mini" style="margin-top:10px;text-align:center;color:var(--muted2)">🛵 Motoboy PIX ${money(mpix)} — fora do caixa (não entra nem sai)</div>`:''}`;
 }
 
 function renderVendasBox() {
-  const box = $('#vendas_box');
+  const box = $('#vendas_box'); if (!box) return;
   box.innerHTML = S.produtos.map(p=>{
     const dv = draftVendas.find(v=>v.pid===p.id)||{qtd:0};
     return `<div class="srow" style="grid-template-columns:1fr 75px 20px">
-      <div class="mini">${p.nome}</div>
+      <div class="mini">${esc(p.nome)}</div>
       <input class="inp mono" type="number" min="0" data-pid="${p.id}" value="${dv.qtd||''}" placeholder="0">
       <span class="mini">un</span></div>`;
   }).join('') || '<div class="mini" style="color:var(--muted2)">Sem produtos cadastrados</div>';
@@ -583,13 +882,48 @@ function renderVendasBox() {
   }));
 }
 
-function renderSaidaBox() {
-  const box = $('#saida_box');
-  box.innerHTML = draftSaidas.map((s,i)=>`<div class="srow"><input class="inp" data-i="${i}" data-k="desc" value="${s.desc}" placeholder="descrição">
-    <input class="inp mono" type="number" data-i="${i}" data-k="valor" value="${s.valor}" placeholder="0">
-    <span class="px" data-del="${i}">✕</span></div>`).join('');
-  box.querySelectorAll('input').forEach(el=>el.addEventListener('input',e=>{draftSaidas[+e.target.dataset.i][e.target.dataset.k]=e.target.value;}));
-  box.querySelectorAll('[data-del]').forEach(x=>x.onclick=()=>{draftSaidas.splice(+x.dataset.del,1);renderSaidaBox();});
+function renderRetiradaBox() {
+  const box = $('#retirada_box'); if(!box) return;
+  const data = $('#f_data')?.value || '';
+  const lista = retiradasDoDia(data);
+  const fEdit = editandoId ? S.fechamentos.find(x=>x.id===editandoId) : null;
+  const legado = (fEdit && fEdit.saidas) || [];
+  const tot = round2(lista.reduce((a,r)=>a+(+r.valor||0),0) + totalSaidasLegado(fEdit));
+  box.innerHTML = (lista.length||legado.length)
+    ? `<table style="margin-bottom:8px"><tbody>
+        ${lista.map(r=>`<tr>
+          <td class="n" style="width:95px;color:var(--gold)">${money(r.valor)}</td>
+          <td>${esc(r.obs)}<div class="mini">${esc(r.operador||'')}</div></td>
+          <td style="width:24px"><span class="px" data-delret="${r.id}">✕</span></td></tr>`).join('')}
+        ${legado.map(s=>`<tr>
+          <td class="n" style="width:95px;color:var(--muted)">${money(s.valor)}</td>
+          <td class="mini">${esc(s.desc||'saída antiga')} <span class="tag inat">registro antigo</span></td>
+          <td></td></tr>`).join('')}
+       </tbody></table>
+       <div class="cline tot" style="border:none;padding-top:0"><span>Total retirado do caixa</span><span style="color:var(--gold)">${money(tot)}</span></div>`
+    : '<div class="mini" style="color:var(--muted2);padding:6px 0 10px">Nenhuma retirada registrada nesta data.</div>';
+  box.querySelectorAll('[data-delret]').forEach(x=>x.onclick=async()=>{
+    if(!confirm('Excluir esta retirada?'))return;
+    addDeleted(x.dataset.delret);
+    S.retiradas = S.retiradas.filter(r=>r.id!==x.dataset.delret);
+    await sheetSave(); renderRetiradaBox(); atualizarConf(); toast('Retirada excluída');
+  });
+}
+
+async function addRetiradaRapida() {
+  const valor = +$('#rt_valor').value||0;
+  const obs = ($('#rt_obs').value||'').trim();
+  const data = normData($('#f_data').value);
+  if (!data)   { toast('Informe a data do fechamento primeiro', true); return; }
+  if (valor<=0){ $('#rt_valor').classList.add('err'); toast('Informe o valor da retirada', true); return; }
+  if (!obs)    { $('#rt_obs').classList.add('err'); toast('A observação da retirada é obrigatória', true); return; }
+  $('#rt_valor').classList.remove('err'); $('#rt_obs').classList.remove('err');
+  S.retiradas.push({id:uid(), data, valor, obs,
+    operador:($('#f_caixa').value||'').trim(), criadoEm:new Date().toLocaleString('pt-BR')});
+  $('#rt_valor').value=''; $('#rt_obs').value='';
+  await sheetSave();
+  renderRetiradaBox(); atualizarConf();
+  toast('Retirada registrada — ' + money(valor));
 }
 
 async function salvarFechamento() {
@@ -599,24 +933,62 @@ async function salvarFechamento() {
   if (soma <= 0 && total <= 0) { toast('Preencha os valores do turno', true); return; }
   const dataVal = normData($('#f_data').value);
   if (!dataVal) { toast('Data inválida — confira o campo Data', true); return; }
-  // Aviso de duplicidade: já existe fechamento nesse dia?
   if (!editandoId) {
     const jaExiste = S.fechamentos.find(x=>normData(x.data)===dataVal);
     if (jaExiste && !confirm('Já existe um fechamento em '+fmtDataBR(dataVal)+' ('+money(fatF(jaExiste))+').\nSalvar OUTRO fechamento para o mesmo dia?')) return;
   }
+
+  const ti = +$('#f_ti').value||0, tf = +$('#f_tf').value||0;
+  const mrep = +$('#f_mrep').value||0, mpix = +$('#f_mpix').value||0;
+  const obsTi = ($('#f_obs_ti').value||'').trim();
+  const obsTf = ($('#f_obs_tf').value||'').trim();
+  const destTroco = ($('#f_dest_troco').value||'').trim();
+
+  // travas obrigatórias do troco
+  const ant = trocoFinalAnterior(dataVal, editandoId);
+  if (ant && Math.abs(ti - ant.valor) > 0.009 && !obsTi) {
+    $('#f_obs_ti').classList.add('err'); $('#f_obs_ti').focus();
+    toast('Justifique a diferença do troco inicial antes de salvar', true); return;
+  }
+  if (Math.abs(tf - ti) > 0.009 && !destTroco) {
+    $('#f_dest_troco').classList.add('err'); $('#f_dest_troco').focus();
+    toast('Diga para onde foi o troco antes de salvar', true); return;
+  }
+  if (destTroco === 'outro' && !obsTf) {
+    $('#f_obs_tf').classList.add('err'); $('#f_obs_tf').focus();
+    toast('Descreva o que aconteceu com o troco', true); return;
+  }
+
+  const fAtual = editandoId ? S.fechamentos.find(x=>x.id===editandoId) : null;
+  const c = calcFechamento({soma, total,
+    retiradas: totalRetiradasDoDia(dataVal) + totalSaidasLegado(fAtual),
+    motoboyDinheiro: mrep, trocoInicio: ti, trocoFinal: tf});
+
+  if (!c.ok) {
+    const msg = (c.diff<0 ? 'FALTA de ' : 'SOBRA de ') + money(Math.abs(c.diff));
+    if (!confirm('O caixa não fechou: '+msg+' ('+moneySign(c.diff)+').\n\nSalvar assim mesmo?')) return;
+  }
+
   const f = {
     id: editandoId || uid(),
     data: dataVal, caixa:$('#f_caixa').value,
     conf:r, totalVendas:total,
-    trocoInicio:+$('#f_ti').value||0, trocoFinal:+$('#f_tf').value||0,
-    motoboyRepasse:+$('#f_mrep').value||0, motoboyPix:+$('#f_mpix').value||0,
-    saidas:draftSaidas.filter(s=>s.valor).map(s=>({desc:s.desc,valor:+s.valor})),
+    trocoInicio:ti, trocoFinal:tf,
+    obsTrocoInicio:obsTi, obsTrocoFinal:obsTf, destinoTroco:destTroco,
+    trocoMovimento: round2(tf - ti),
+    motoboyRepasse:mrep, motoboyPix:mpix, motoboyTotal: round2(mrep + mpix),
+    saidas: (fAtual && fAtual.saidas) || [],           // preserva registros antigos
+    retiradasTotal: totalRetiradasDoDia(dataVal),
+    totalConferido: c.somaAjustada,
+    diferenca: c.diff,
+    statusCaixa: c.ok ? 'OK' : (c.diff < 0 ? 'FALTA' : 'SOBRA'),
+    versaoCalculo: 2,
     vendas:draftVendas.filter(v=>v.qtd>0).map(v=>({pid:v.pid,qtd:v.qtd})),
     obs:$('#f_obs').value
   };
   if (editandoId) {
     const idx = S.fechamentos.findIndex(x=>x.id===editandoId);
-    if (idx>=0) S.fechamentos[idx] = f; else S.fechamentos.push(f);
+    if (idx>=0) S.fechamentos[idx] = {...S.fechamentos[idx], ...f}; else S.fechamentos.push(f);
     editandoId = null;
     toast('Fechamento atualizado');
   } else {
@@ -625,7 +997,7 @@ async function salvarFechamento() {
     toast('Fechamento salvo — enviando ao Sheets...');
   }
   await sheetSave();
-  draftSaidas=[]; draftVendas=[];
+  draftVendas=[];
   render();
 }
 
@@ -635,24 +1007,25 @@ function renderUltimos() {
     .sort((a,b) => (normData(b.data)||'0000').localeCompare(normData(a.data)||'0000'))
     .slice(0,10);
   $('#ult_list').innerHTML = last.length
-    ? `<table><thead><tr><th>Data</th><th>Caixa</th><th class="n">Total</th><th></th></tr></thead><tbody>`+
-      last.map(f=>`<tr>
+    ? `<table><thead><tr><th>Data</th><th>Caixa</th><th class="n">Total</th><th class="n">Dif.</th><th></th></tr></thead><tbody>`+
+      last.map(f=>{const c=calcFechamentoSalvo(f);return `<tr>
         <td class="mini" style="font-family:'Space Mono'">${fmtData(f.data)}</td>
-        <td>${f.caixa||'—'}</td>
+        <td>${esc(f.caixa)||'—'}</td>
         <td class="n">${money(fatF(f))}</td>
+        <td class="n ${c.ok?'':(c.diff<0?'neg':'pos')}" title="${c.texto}${c.legado?' (regra antiga)':''}">${c.ok?'✅':moneySign(c.diff)}</td>
         <td style="white-space:nowrap">
           <button class="btn ghost sm" data-edit="${f.id}" style="margin-right:4px">✏️</button>
           <button class="btn sm" data-del="${f.id}" style="background:rgba(216,88,76,.2);color:#f0907f;border:none">🗑</button>
-        </td></tr>`).join('')+'</tbody></table>'
+        </td></tr>`;}).join('')+'</tbody></table>'
     : '<div class="empty">Nenhum fechamento ainda</div>';
 
-  document.querySelectorAll('[data-edit]').forEach(btn=>btn.onclick=()=>{
+  document.querySelectorAll('#ult_list [data-edit]').forEach(btn=>btn.onclick=()=>{
     editandoId = btn.dataset.edit;
-    draftSaidas=[]; draftVendas=[];
+    draftVendas=[];
     renderFechamento();
     window.scrollTo(0,0);
   });
-  document.querySelectorAll('[data-del]').forEach(btn=>btn.onclick=async()=>{
+  document.querySelectorAll('#ult_list [data-del]').forEach(btn=>btn.onclick=async()=>{
     const f = S.fechamentos.find(x=>x.id===btn.dataset.del);
     if(!f) return;
     if(!confirm(`Excluir fechamento de ${fmtDataBR(f.data)} (${money(fatF(f))})? Essa ação não tem volta.`)) return;
@@ -662,6 +1035,238 @@ function renderUltimos() {
     toast('Fechamento excluído');
     renderUltimos();
   });
+}
+
+// ============================================================
+//  RETIRADA DO CAIXA (aba própria)
+// ============================================================
+let filtroRetMes = '';
+function renderRetiradas() {
+  const hoje = hojeStr();
+  const meses = [...new Set((S.retiradas||[]).map(r=>normData(r.data).slice(0,7)).filter(Boolean))].sort().reverse();
+  if (!filtroRetMes || !meses.includes(filtroRetMes)) filtroRetMes = meses[0] || hoje.slice(0,7);
+  const lista = (S.retiradas||[])
+    .filter(r=>normData(r.data).slice(0,7)===filtroRetMes)
+    .sort((a,b)=>normData(b.data).localeCompare(normData(a.data)));
+  const totMes = round2(lista.reduce((a,r)=>a+(+r.valor||0),0));
+  const totHoje = totalRetiradasDoDia(hoje);
+  const porDia = {};
+  lista.forEach(r=>{const d=normData(r.data);porDia[d]=round2((porDia[d]||0)+(+r.valor||0));});
+  const diasComRet = Object.keys(porDia).length;
+
+  view.innerHTML = `
+  <div class="head"><div><div class="ey">Saídas de dinheiro do caixa</div><h1>Retirada do caixa</h1>
+  <p>Todo dinheiro tirado da gaveta no meio do turno (gelo, verdura, papelaria...) entra aqui. O valor <b>volta para a conta do fechamento</b> e cobre a diferença que apareceria como falta.</p></div></div>
+
+  <div class="grid kpis" style="margin-bottom:14px">
+    <div class="card kpi"><div class="lab">Retirado hoje</div><div class="val em">${money(totHoje)}</div><div class="sub">${fmtDataBR(hoje)}</div></div>
+    <div class="card kpi"><div class="lab">Retirado no mês</div><div class="val gd">${money(totMes)}</div><div class="sub">${lista.length} retiradas</div></div>
+    <div class="card kpi"><div class="lab">Média por dia com retirada</div><div class="val">${money(diasComRet?totMes/diasComRet:0)}</div><div class="sub">${diasComRet} dias</div></div>
+  </div>
+
+  <div class="split">
+    <div class="panel">
+      <div class="ph"><div><h3>Histórico</h3><div class="sub">${lista.length} registros</div></div>
+        ${meses.length?`<select class="inp" id="ret_mes" style="width:auto;padding:6px 10px;font-size:12px">
+          ${meses.map(m=>`<option value="${m}" ${m===filtroRetMes?'selected':''}>${m.slice(5)}/${m.slice(0,4)}</option>`).join('')}
+        </select>`:''}
+      </div>
+      <div class="scrollx"><table><thead><tr>
+        <th>Data</th><th class="n">Valor</th><th>Observação</th><th>Operador</th><th></th>
+      </tr></thead><tbody>
+      ${lista.map(r=>`<tr>
+        <td class="mini" style="font-family:'Space Mono'">${fmtData(r.data)}</td>
+        <td class="n" style="color:var(--gold)">${money(r.valor)}</td>
+        <td>${esc(r.obs)}</td>
+        <td class="mini">${esc(r.operador)||'—'}</td>
+        <td style="white-space:nowrap"><button class="btn ghost sm" data-editret="${r.id}" style="margin-right:4px">✏️</button><span class="px" data-delret2="${r.id}">✕</span></td>
+      </tr>`).join('')||'<tr><td colspan="5"><div class="empty">Nenhuma retirada neste mês</div></td></tr>'}
+      </tbody></table></div>
+    </div>
+    <div>
+      <div class="panel" style="margin-bottom:14px">
+        <div class="ph"><h3>Nova retirada</h3></div>
+        <div class="field"><label>Data</label><input class="inp" type="date" id="nr_data" value="${hoje}"></div>
+        <div class="field"><label>Valor retirado <b style="color:var(--gold)">(obrigatório)</b></label><input class="inp mono req" type="number" step="0.01" id="nr_valor" placeholder="0"></div>
+        <div class="field"><label>O que foi comprado / motivo <b style="color:var(--gold)">(obrigatório)</b></label><input class="inp req" id="nr_obs" placeholder="ex: 3 sacos de gelo no mercado"></div>
+        <div class="field"><label>Operador</label><input class="inp" id="nr_op" placeholder="quem retirou"></div>
+        <button class="btn" id="nr_add" style="width:100%">Registrar retirada</button>
+        <div class="hint">Sem valor e sem observação o sistema não grava. É o que garante rastreio do dinheiro da gaveta.</div>
+      </div>
+      <div class="panel">
+        <div class="ph"><h3>Total por dia — ${filtroRetMes.slice(5)}/${filtroRetMes.slice(0,4)}</h3></div>
+        ${Object.entries(porDia).sort((a,b)=>b[0].localeCompare(a[0])).map(([d,v])=>
+          `<div class="cline"><span>${fmtDataBR(d)}</span><span>${money(v)}</span></div>`).join('')||'<div class="empty">Sem dados</div>'}
+      </div>
+    </div>
+  </div>`;
+
+  if ($('#ret_mes')) $('#ret_mes').onchange = e => { filtroRetMes = e.target.value; renderRetiradas(); };
+  $('#nr_add').onclick = async () => {
+    const data = normData($('#nr_data').value);
+    const valor = +$('#nr_valor').value||0;
+    const obs = ($('#nr_obs').value||'').trim();
+    if (!data) { toast('Data inválida', true); return; }
+    if (valor<=0) { $('#nr_valor').classList.add('err'); toast('Informe o valor retirado', true); return; }
+    if (!obs) { $('#nr_obs').classList.add('err'); toast('A observação é obrigatória', true); return; }
+    S.retiradas.push({id:uid(), data, valor, obs, operador:($('#nr_op').value||'').trim(),
+      criadoEm:new Date().toLocaleString('pt-BR')});
+    await sheetSave();
+    toast('Retirada de ' + money(valor) + ' registrada');
+    filtroRetMes = data.slice(0,7);
+    renderRetiradas();
+  };
+  document.querySelectorAll('[data-delret2]').forEach(x=>x.onclick=async()=>{
+    if(!confirm('Excluir esta retirada? Ela deixa de contar no fechamento do dia.'))return;
+    addDeleted(x.dataset.delret2);
+    S.retiradas = S.retiradas.filter(r=>r.id!==x.dataset.delret2);
+    await sheetSave(); toast('Retirada excluída'); renderRetiradas();
+  });
+  document.querySelectorAll('[data-editret]').forEach(btn=>btn.onclick=async()=>{
+    const r = S.retiradas.find(x=>x.id===btn.dataset.editret); if(!r) return;
+    const valor = prompt('Valor retirado (R$):', r.valor); if(valor===null) return;
+    const obs = prompt('Observação (obrigatória):', r.obs); if(obs===null) return;
+    if(!(+valor>0)) { toast('Valor inválido', true); return; }
+    if(!String(obs).trim()) { toast('A observação é obrigatória', true); return; }
+    r.valor = +valor; r.obs = String(obs).trim();
+    await sheetSave(); toast('Retirada atualizada'); renderRetiradas();
+  });
+}
+
+// ============================================================
+//  BALANÇO DO TROCO (aba própria)
+// ============================================================
+const DEST_TROCO = {
+  motoboy:  {ic:'🛵', txt:'Pagamento do motoboy', tag:'mid'},
+  retiradas:{ic:'📤', txt:'Completou retirada do caixa', tag:'mid'},
+  reforco:  {ic:'➕', txt:'Reforço de troco', tag:'ok'},
+  outro:    {ic:'✏️', txt:'Outro', tag:'inat'}
+};
+function renderTroco() {
+  const fs = [...S.fechamentos]
+    .filter(f => isRegistroReal(f) && normData(f.data))
+    .sort((a,b)=>normData(b.data).localeCompare(normData(a.data)))
+    .slice(0,90);
+
+  let alertas = 0, consumido = 0, reforcado = 0;
+  const linhas = fs.map((f,i)=>{
+    const ti = +f.trocoInicio||0, tf = +f.trocoFinal||0;
+    const delta = round2(tf - ti);
+    if (delta < -0.009) consumido = round2(consumido - delta);
+    if (delta >  0.009) reforcado = round2(reforcado + delta);
+    const ant = fs[i+1];
+    const antTf = ant ? (+ant.trocoFinal||0) : null;
+    const quebra = ant !== undefined && Math.abs(ti - antTf) > 0.009;
+    if (quebra) alertas++;
+    return {f, ti, tf, delta, quebra, antTf};
+  });
+
+  const ultimo = fs[0];
+  const trocoAtual = ultimo ? (+ultimo.trocoFinal||0) : 0;
+
+  view.innerHTML = `
+  <div class="head"><div><div class="ey">Fundo de caixa</div><h1>Balanço do troco</h1>
+  <p>Quando o troco <b>diminui</b>, aquele dinheiro não veio de venda — foi para o motoboy ou completou uma retirada, e o fechamento já considera isso. Quando <b>aumenta</b>, é dinheiro de venda que ficou na gaveta.</p></div></div>
+
+  <div class="grid kpis" style="margin-bottom:14px">
+    <div class="card kpi"><div class="lab">Troco na gaveta agora</div><div class="val em">${money(trocoAtual)}</div><div class="sub">fim de ${ultimo?fmtDataBR(ultimo.data):'—'}</div></div>
+    <div class="card kpi"><div class="lab">Consumido no período</div><div class="val rd">${money(consumido)}</div><div class="sub">saiu do troco</div></div>
+    <div class="card kpi"><div class="lab">Reforçado no período</div><div class="val gr">${money(reforcado)}</div><div class="sub">entrou no troco</div></div>
+    <div class="card kpi"><div class="lab">Quebras de continuidade</div><div class="val ${alertas?'rd':'gr'}">${alertas}</div><div class="sub">abertura ≠ fecho anterior</div></div>
+  </div>
+
+  ${alertas?`<div class="alert"><span>⚠️</span><div><b>${alertas} ${alertas>1?'dias abriram':'dia abriu'} com troco diferente do fechamento anterior.</b> As linhas marcadas em vermelho abaixo precisam de justificativa no fechamento.</div></div>`:''}
+
+  <div class="panel">
+    <div class="ph"><div><h3>Movimento dia a dia</h3><div class="sub">últimos ${linhas.length} fechamentos</div></div></div>
+    <div class="scrollx"><table><thead><tr>
+      <th>Data</th><th>Caixa</th><th class="n">Fechou anterior</th><th class="n">Abriu</th>
+      <th class="n">Fechou</th><th class="n">Movimento</th><th>Destino</th><th>Justificativa</th>
+    </tr></thead><tbody>
+    ${linhas.map(l=>{
+      const d = DEST_TROCO[l.f.destinoTroco] || null;
+      return `<tr>
+      <td class="mini" style="font-family:'Space Mono'">${fmtData(l.f.data)}</td>
+      <td>${esc(l.f.caixa)||'—'}</td>
+      <td class="n mini">${l.antTf==null?'—':money(l.antTf)}</td>
+      <td class="n ${l.quebra?'neg':''}">${money(l.ti)}${l.quebra?' ⚠️':''}</td>
+      <td class="n">${money(l.tf)}</td>
+      <td class="n ${l.delta<-0.009?'neg':l.delta>0.009?'pos':''}"><b>${Math.abs(l.delta)<0.009?'—':moneySign(l.delta)}</b></td>
+      <td>${d?`<span class="tag ${d.tag}">${d.ic} ${d.txt}</span>`:(Math.abs(l.delta)>0.009?'<span class="tag lo">sem destino</span>':'<span class="mini">—</span>')}</td>
+      <td class="mini">${esc(l.f.obsTrocoFinal||l.f.obsTrocoInicio||'')||'—'}</td>
+    </tr>`;}).join('')||'<tr><td colspan="8"><div class="empty">Nenhum fechamento com troco lançado</div></td></tr>'}
+    </tbody></table></div>
+  </div>`;
+}
+
+// ============================================================
+//  METAS
+// ============================================================
+function renderMetas() {
+  const m = calcMetas();
+  const bar = (pct,cor)=>`<div style="background:var(--bg);border-radius:8px;height:12px;overflow:hidden;margin:6px 0">
+    <div style="height:100%;width:${Math.min(100,Math.max(0,pct))}%;background:${cor};transition:.3s"></div></div>`;
+
+  view.innerHTML = `
+  <div class="head"><div><div class="ey">Parâmetros de gestão</div><h1>Metas e ponto de equilíbrio</h1>
+  <p>Estes números alimentam o painel e o relatório automático do grupo. Preencha uma vez e edite quando mudar.</p></div></div>
+
+  <div class="split">
+    <div class="panel">
+      <div class="ph"><h3>Parâmetros do mês</h3></div>
+      ${PARAMS.map(p=>`<div class="field">
+        <label>${p.label} <span style="color:var(--muted2)">(${p.un})</span></label>
+        <input class="inp mono" type="number" step="0.01" id="cf_${p.k}" value="${cfg(p.k)||''}" placeholder="0">
+        <div class="mini" style="margin-top:4px;color:var(--muted2)">${p.ajuda}</div>
+      </div>`).join('')}
+      <button class="btn" id="cf_salvar" style="width:100%;margin-top:6px">Salvar parâmetros</button>
+      <div class="hint">Margem de contribuição = 100% − CMV% − taxas%. O ponto de equilíbrio é o custo fixo dividido por essa margem: quanto você precisa faturar no mês só para não ter prejuízo.</div>
+    </div>
+
+    <div>
+      <div class="panel" style="margin-bottom:14px">
+        <div class="ph"><h3>Como está o mês</h3><div class="sub">${m.mes.slice(5)}/${m.mes.slice(0,4)}</div></div>
+        ${m.configurado ? `
+        <div class="cline tot"><span>Faturado até agora</span><span style="color:var(--ember)">${money(m.acum)}</span></div>
+        <div class="cline"><span>Dias com venda</span><span>${m.diasComVenda} de ${m.diasNoMes}</span></div>
+        <div class="cline"><span>Média por dia</span><span>${money(m.mediaDia)}</span></div>
+        <div class="cline"><span>Projeção do mês</span><span>${money(m.projecao)}</span></div>
+
+        <div class="slab" style="margin-top:16px">Meta — ${m.pctMeta.toFixed(1).replace('.',',')}%</div>
+        ${bar(m.pctMeta, 'var(--ember)')}
+        <div class="cline"><span>Meta</span><span>${money(m.metaMes)}</span></div>
+        <div class="cline"><span>Falta</span><span style="color:${m.faltaMeta>0?'var(--gold)':'var(--green)'}">${money(m.faltaMeta)}</span></div>
+        ${m.diasRestantes>0?`<div class="cline"><span>Precisa por dia (${m.diasRestantes}d)</span><span>${money(m.precisaDiaMeta)}</span></div>`:''}
+
+        <div class="slab" style="margin-top:16px">Ponto de equilíbrio — ${m.pctPE.toFixed(1).replace('.',',')}%</div>
+        ${bar(m.pctPE, m.passouPE?'var(--green)':'var(--red)')}
+        <div class="cline"><span>Margem de contribuição</span><span>${(m.mc*100).toFixed(1).replace('.',',')}%</span></div>
+        <div class="cline"><span>Ponto de equilíbrio</span><span>${money(m.pe)}</span></div>
+        <div class="diffbox ${m.passouPE?'ok':'bad'}" style="margin-top:10px">
+          ${m.passouPE
+            ? '✅ Ponto de equilíbrio superado — cada real a mais é lucro'
+            : `⚠️ Faltam <b>${money(m.faltaPE)}</b> para cobrir o custo fixo${m.diasRestantes>0?' · '+money(m.precisaDiaPE)+'/dia':''}`}
+        </div>` : '<div class="empty">Preencha os parâmetros ao lado para ver o painel.</div>'}
+      </div>
+
+      <div class="panel">
+        <div class="ph"><h3>📲 Relatório automático</h3></div>
+        <div class="mini" style="line-height:1.6">
+          Assim que o fechamento é salvo, o relatório completo sai sozinho no grupo do Telegram:
+          conferência do caixa, retiradas, balanço do troco, motoboy e PIX pendente, comparativo com o mesmo dia da semana passada,
+          e o progresso de meta e ponto de equilíbrio.
+        </div>
+        <div class="hint">O token do bot fica guardado dentro do Apps Script, nunca neste arquivo — o <b>index.html</b> é público no GitHub.</div>
+      </div>
+    </div>
+  </div>`;
+
+  $('#cf_salvar').onclick = async ()=>{
+    PARAMS.forEach(p=>{ setCfg(p.k, +$('#cf_'+p.k).value||0); });
+    await sheetSave();
+    toast('Parâmetros salvos');
+    renderMetas();
+  };
 }
 
 // ============================================================
@@ -692,11 +1297,9 @@ function renderBalanco() {
     return;
   }
 
-  // Meses disponíveis (para o seletor)
   const mesesDisp = [...new Set(comData.map(f=>f.data.slice(0,7)))].sort().reverse();
   if (balMes && !mesesDisp.includes(balMes)) balMes = '';
 
-  // Recorte: mês escolhido OU período corrido
   let base = comData;
   if (balMes) {
     base = comData.filter(f=>f.data.slice(0,7) === balMes);
@@ -707,20 +1310,19 @@ function renderBalanco() {
     base = win.length ? win : comData;
   }
 
-  // Resumo mês a mês (sempre calculado sobre todos os dados)
   const resumoMeses = {};
   comData.forEach(f=>{
     const m = f.data.slice(0,7);
-    const r = resumoMeses[m] = resumoMeses[m] || {total:0, dias:new Set(), motoboy:0, fiado:0, voucher:0, dif:0};
+    const r = resumoMeses[m] = resumoMeses[m] || {total:0, dias:new Set(), motoboy:0, fiado:0, voucher:0, dif:0, retirada:0};
     r.total = round2(r.total + fatF(f));
     r.dias.add(f.data);
     r.motoboy = round2(r.motoboy + (+f.motoboyRepasse||0) + (+f.motoboyPix||0));
     r.fiado = round2(r.fiado + (+(f.conf?.pg_colaborador)||0));
     r.voucher = round2(r.voucher + (+(f.conf?.pg_voucher)||0));
     r.dif = round2(r.dif + diffCaixa(f));
+    r.retirada = round2(r.retirada + totalRetiradasDoDia(f.data) + totalSaidasLegado(f));
   });
 
-  // KPIs
   const fatT = round2(base.reduce((a,f)=>a+fatF(f), 0));
   const nDias = new Set(base.map(f=>f.data)).size || 1;
   const media = fatT / nDias;
@@ -732,9 +1334,10 @@ function renderBalanco() {
   const voucherT = round2(base.reduce((a,f)=>a+(+(f.conf?.pg_voucher||0)), 0));
   const difT = round2(base.reduce((a,f)=>a+diffCaixa(f), 0));
   const diasComDif = base.filter(f=>Math.abs(diffCaixa(f))>=0.02);
+  const retT = round2(base.reduce((a,f)=>a+totalRetiradasDoDia(f.data)+totalSaidasLegado(f), 0));
   const cmvT = base.reduce((a,f)=>a+cmvFech(f), 0);
+  const nLegado = base.filter(f=>!(+f.versaoCalculo>=2)).length;
 
-  // Mix de pagamentos
   const mix = {'Cartão':0,'Cartão CPF':0,'Pago Online':0,'Voucher':0,'PIX Online':0,'Dinheiro':0,'Motoboy':0,'Fiado/Colab.':0};
   base.forEach(f=>{const c=f.conf||{};
     mix['Cartão']+=(+c.pg_cartao||0);
@@ -749,7 +1352,6 @@ function renderBalanco() {
   Object.keys(mix).forEach(k=>mix[k]=round2(mix[k]));
   const mixTotal = round2(Object.values(mix).reduce((a,b)=>a+b,0));
 
-  // Agrupamento dia/semana/mês
   const grupos = {};
   base.forEach(f=>{
     const k = balAgrupa==='dia' ? f.data : balAgrupa==='semana' ? chaveSemana(f.data) : chaveMes(f.data);
@@ -758,7 +1360,6 @@ function renderBalanco() {
   const gKeys = Object.keys(grupos).sort();
   const gLabels = gKeys.map(k => balAgrupa==='mes' ? k.split('-').reverse().join('/') : (balAgrupa==='semana' ? 'sem '+fmtData(k) : fmtData(k)));
 
-  // Melhores dias da semana (média por dia da semana)
   const porDow = {};
   base.forEach(f=>{
     const w = weekdayOf(f.data); if (w<0) return;
@@ -770,9 +1371,7 @@ function renderBalanco() {
     total: round2(arr.reduce((a,b)=>a+b,0))
   })).sort((a,b)=>b.media-a.media);
 
-  // Motoboy por dia (para o relatório)
   const motoDias = base.filter(f=>(+f.conf?.pg_motoboy||0)>0 || (+f.motoboyRepasse||0)>0 || (+f.motoboyPix||0)>0);
-
   const periodoLabel = balMes ? nomeMes(balMes) : (balPeriodo===0?'Todos os registros':'Últimos '+balPeriodo+' dias');
 
   view.innerHTML = `
@@ -787,22 +1386,24 @@ function renderBalanco() {
     ${[['dia','Dia'],['semana','Semana'],['mes','Mês']].map(([v,l])=>`<button class="btn sm ${balAgrupa===v?'':'ghost'}" onclick="balAgrupa='${v}';renderBalanco()">${l}</button>`).join('')}
   </div>
   ${mesesDisp.length>1?`<div class="panel" style="margin-bottom:14px"><div class="ph"><div><h3>Resumo por mês</h3><div class="sub">clique num mês acima para ver só ele</div></div></div>
-    <div class="scrollx"><table><thead><tr><th>Mês</th><th class="n">Dias</th><th class="n">Total vendido</th><th class="n">Média/dia</th><th class="n">Motoboy (custo)</th><th class="n">Fiado</th><th class="n">Voucher</th><th class="n">Dif. caixa</th></tr></thead><tbody>
+    <div class="scrollx"><table><thead><tr><th>Mês</th><th class="n">Dias</th><th class="n">Total vendido</th><th class="n">Média/dia</th><th class="n">Motoboy (custo)</th><th class="n">Retiradas</th><th class="n">Fiado</th><th class="n">Voucher</th><th class="n">Dif. caixa</th></tr></thead><tbody>
     ${Object.keys(resumoMeses).sort().reverse().map(m=>{const r=resumoMeses[m];const nd=r.dias.size||1;return `<tr style="${balMes===m?'background:rgba(224,168,62,.07)':''}">
       <td><b>${nomeMes(m)}</b></td><td class="n">${r.dias.size}</td>
       <td class="n"><b>${money(r.total)}</b></td><td class="n">${money(r.total/nd)}</td>
-      <td class="n">${money(r.motoboy)}</td><td class="n">${money(r.fiado)}</td><td class="n">${money(r.voucher)}</td>
-      <td class="n" style="color:${Math.abs(r.dif)<0.02?'var(--green)':'#f0907f'}">${money(r.dif)}</td></tr>`;}).join('')}
+      <td class="n">${money(r.motoboy)}</td><td class="n">${money(r.retirada)}</td><td class="n">${money(r.fiado)}</td><td class="n">${money(r.voucher)}</td>
+      <td class="n ${Math.abs(r.dif)<0.02?'':(r.dif<0?'neg':'pos')}">${Math.abs(r.dif)<0.02?'✓':moneySign(r.dif)}</td></tr>`;}).join('')}
     </tbody></table></div></div>`:''}
   <div class="grid kpis" style="margin-bottom:14px">
     <div class="card kpi"><div class="lab">Total de Vendas</div><div class="val em">${money(fatT)}</div><div class="sub">${nDias} dias</div></div>
     <div class="card kpi"><div class="lab">Média/dia</div><div class="val">${money(media)}</div></div>
     <div class="card kpi"><div class="lab">Melhor dia</div><div class="val gd">${money(melhor?fatF(melhor):0)}</div><div class="sub">${melhor?fmtDataBR(melhor.data)+' ('+DIAS_SEMANA[weekdayOf(melhor.data)]+')':''}</div></div>
-    <div class="card kpi"><div class="lab">Diferença de caixa</div><div class="val ${Math.abs(difT)<0.02?'gr':'rd'}">${money(difT)}</div><div class="sub">${diasComDif.length} dia(s) com diferença</div></div>
-    <div class="card kpi"><div class="lab">Fiado / Colaborador</div><div class="val">${money(fiadoT)}</div><div class="sub">${fatT?(fiadoT/fatT*100).toFixed(1):0}% do total</div></div>
+    <div class="card kpi"><div class="lab">Diferença de caixa</div><div class="val ${Math.abs(difT)<0.02?'gr':(difT<0?'rd':'gr')}">${Math.abs(difT)<0.02?money(0):moneySign(difT)}</div><div class="sub">${diasComDif.length} dia(s) com diferença</div></div>
+    <div class="card kpi"><div class="lab">Retiradas do caixa</div><div class="val gd">${money(retT)}</div><div class="sub">${fatT?(retT/fatT*100).toFixed(1).replace('.',','):0}% do total</div></div>
+    <div class="card kpi"><div class="lab">Fiado / Colaborador</div><div class="val">${money(fiadoT)}</div><div class="sub">${fatT?(fiadoT/fatT*100).toFixed(1).replace('.',','):0}% do total</div></div>
     <div class="card kpi"><div class="lab">Voucher</div><div class="val">${money(voucherT)}</div></div>
     ${cmvT?`<div class="card kpi"><div class="lab">CMV (fichas)</div><div class="val">${money(cmvT)}</div><div class="sub">${fatT?(cmvT/fatT*100).toFixed(0):0}%</div></div>`:''}
   </div>
+  ${nLegado?`<div class="hint" style="margin:0 0 14px">ℹ️ ${nLegado} fechamento(s) deste período são anteriores à regra nova e continuam sendo conferidos pelo cálculo antigo — o histórico não foi alterado.</div>`:''}
   <div class="split" style="margin-bottom:14px">
     <div class="panel"><div class="ph"><h3>Vendas por ${balAgrupa==='dia'?'dia':balAgrupa==='semana'?'semana':'mês'}</h3></div><canvas id="ch1" height="150"></canvas></div>
     ${mixTotal>0?`<div class="panel"><div class="ph"><h3>Formas de pagamento</h3><div class="sub">${money(mixTotal)}</div></div><canvas id="ch2" height="150"></canvas></div>`:''}
@@ -815,24 +1416,34 @@ function renderBalanco() {
       </tbody></table></div>
     <div class="panel"><div class="ph"><div><h3>🏍 Relatório Motoboy</h3><div class="sub">período selecionado</div></div></div>
       <div class="cline"><span>Recebido pelo motoboy (na entrega)</span><span>${money(motRecebido)}</span></div>
-      <div class="cline"><span>Repasse de fretes ao motoboy</span><span>${money(motRepasse)}</span></div>
-      <div class="cline"><span>Motoboy pago via PIX (conta)</span><span>${money(motPix)}</span></div>
+      <div class="cline"><span>Pago em dinheiro (do caixa)</span><span>${money(motRepasse)}</span></div>
+      <div class="cline"><span>Pago via PIX (conta)</span><span>${money(motPix)}</span></div>
       <div class="cline tot"><span>Custo total motoboy</span><span style="color:var(--ember)">${money(round2(motRepasse+motPix))}</span></div>
       <div class="scrollx" style="margin-top:10px;max-height:260px;overflow-y:auto">
-      <table><thead><tr><th>Data</th><th class="n">Recebido</th><th class="n">Repasse</th><th class="n">PIX</th></tr></thead><tbody>
+      <table><thead><tr><th>Data</th><th class="n">Recebido</th><th class="n">Dinheiro</th><th class="n">PIX</th></tr></thead><tbody>
       ${motoDias.map(f=>`<tr><td class="mini" style="font-family:'Space Mono'">${fmtData(f.data)}</td><td class="n">${money(+f.conf?.pg_motoboy||0)}</td><td class="n">${money(+f.motoboyRepasse||0)}</td><td class="n">${money(+f.motoboyPix||0)}</td></tr>`).join('')||'<tr><td colspan=4><div class="empty">Sem movimentação</div></td></tr>'}
       </tbody></table></div></div>
   </div>
-  ${diasComDif.length?`<div class="panel" style="margin-bottom:14px"><div class="ph"><div><h3>⚠️ Diferenças de caixa</h3><div class="sub">dias em que a soma dos recebimentos não bateu com o total</div></div></div>
-    <div class="scrollx"><table><thead><tr><th>Data</th><th>Caixa</th><th class="n">Total vendas</th><th class="n">Soma recebimentos</th><th class="n">Diferença</th><th>Obs</th></tr></thead><tbody>
-    ${diasComDif.map(f=>{const d=diffCaixa(f);return `<tr><td class="mini" style="font-family:'Space Mono'">${fmtData(f.data)}</td><td>${f.caixa||'—'}</td><td class="n">${money(fatF(f))}</td><td class="n">${money(somaConf(f.conf))}</td><td class="n" style="color:${d<0?'#f0907f':'var(--gold)'}">${money(d)}</td><td class="mini">${(f.obs||'').slice(0,60)}</td></tr>`;}).join('')}
+  ${diasComDif.length?`<div class="panel" style="margin-bottom:14px"><div class="ph"><div><h3>⚠️ Diferenças de caixa</h3><div class="sub">negativo = falta · positivo = sobra</div></div></div>
+    <div class="scrollx"><table><thead><tr><th>Data</th><th>Caixa</th><th class="n">Recebimentos</th><th class="n">Retiradas</th><th class="n">Motoboy $</th><th class="n">Mov. troco</th><th class="n">Conferido</th><th class="n">Vendas</th><th class="n">Diferença</th><th>Obs</th></tr></thead><tbody>
+    ${diasComDif.map(f=>{const c=calcFechamentoSalvo(f);return `<tr>
+      <td class="mini" style="font-family:'Space Mono'">${fmtData(f.data)}</td>
+      <td>${esc(f.caixa)||'—'}</td>
+      <td class="n">${money(c.soma)}</td>
+      <td class="n">${c.retiradas?money(c.retiradas):'—'}</td>
+      <td class="n">${c.motoboyDinheiro?money(c.motoboyDinheiro):'—'}</td>
+      <td class="n ${c.trocoDelta<-0.009?'neg':c.trocoDelta>0.009?'pos':''}">${Math.abs(c.trocoDelta)>0.009?moneySign(c.trocoDelta):'—'}</td>
+      <td class="n" style="color:var(--gold)">${money(c.somaAjustada)}</td>
+      <td class="n">${money(c.total)}</td>
+      <td class="n ${c.diff<0?'neg':'pos'}"><b>${moneySign(c.diff)}</b></td>
+      <td class="mini">${esc((f.obs||'').slice(0,60))}</td></tr>`;}).join('')}
     </tbody></table></div></div>`:''}
   <div class="panel"><div class="ph"><div><h3>Todos os fechamentos do período</h3><div class="sub">${base.length} registros</div></div></div>
     <div class="scrollx"><table><thead><tr><th>Data</th><th>Dia</th><th>Caixa</th><th class="n">Cartão</th><th class="n">Online</th><th class="n">Voucher</th><th class="n">PIX On.</th><th class="n">Dinheiro</th><th class="n">Motoboy</th><th class="n">Fiado</th><th class="n">Total</th><th class="n">Dif.</th></tr></thead><tbody>
     ${[...base].reverse().map(f=>{const c=f.conf||{};const d=diffCaixa(f);return `<tr>
       <td class="mini" style="font-family:'Space Mono'">${fmtData(f.data)}</td>
       <td class="mini">${DIAS_SEMANA[weekdayOf(f.data)]||'—'}</td>
-      <td class="mini">${f.caixa||'—'}</td>
+      <td class="mini">${esc(f.caixa)||'—'}</td>
       <td class="n mini">${money((+c.pg_cartao||0)+(+c.pg_cartaocpf||0))}</td>
       <td class="n mini">${money(+c.pg_online||0)}</td>
       <td class="n mini">${money(+c.pg_voucher||0)}</td>
@@ -841,7 +1452,7 @@ function renderBalanco() {
       <td class="n mini">${money(+c.pg_motoboy||0)}</td>
       <td class="n mini">${money(+c.pg_colaborador||0)}</td>
       <td class="n"><b>${money(fatF(f))}</b></td>
-      <td class="n mini" style="color:${Math.abs(d)<0.02?'var(--green)':'#f0907f'}">${Math.abs(d)<0.02?'✓':money(d)}</td>
+      <td class="n mini ${Math.abs(d)<0.02?'':(d<0?'neg':'pos')}">${Math.abs(d)<0.02?'✓':moneySign(d)}</td>
     </tr>`;}).join('')}
     </tbody></table></div></div>`;
 
@@ -879,7 +1490,7 @@ function renderEstoque() {
       <tbody id="ins_body"></tbody></table></div>
     <div>
       <div class="panel" style="margin-bottom:14px"><div class="ph"><h3>Registrar compra</h3></div>
-        <div class="field"><label>Item</label><select class="inp" id="c_item">${S.insumos.map(i=>`<option value="${i.id}">${i.nome}</option>`).join('')}</select></div>
+        <div class="field"><label>Item</label><select class="inp" id="c_item">${S.insumos.map(i=>`<option value="${i.id}">${esc(i.nome)}</option>`).join('')}</select></div>
         <div class="row c2">
           <div class="field"><label>Quantidade</label><input class="inp mono" type="number" id="c_qtd" placeholder="0"></div>
           <div class="field"><label>Valor total da nota</label><input class="inp mono" type="number" id="c_val" placeholder="R$"></div>
@@ -899,7 +1510,7 @@ function renderEstoque() {
 }
 function renderInsBody(){
   $('#ins_body').innerHTML=S.insumos.map(i=>`<tr>
-    <td><b>${i.nome}</b><div class="mini">${i.un}</div></td>
+    <td><b>${esc(i.nome)}</b><div class="mini">${esc(i.un)}</div></td>
     <td class="n" style="color:${i.qtd<i.min?'var(--red)':'var(--cream)'}">${i.qtd}</td>
     <td class="n">${i.min}</td>
     <td class="n">${money(i.custo)}</td>
@@ -928,14 +1539,14 @@ async function regCompra(){const i=insumo($('#c_item').value);const q=+$('#c_qtd
   i.qtd+=q;i.custo=v/q;await sheetSave();toast(`${i.nome}: +${q} · custo ${money(i.custo)}`);renderEstoque();}
 function renderFicha(){$('#ficha_box').innerHTML=S.produtos.map(p=>`<div style="padding:9px 0;border-bottom:1px solid var(--line)">
   <div style="display:flex;justify-content:space-between;align-items:center">
-    <b style="font-size:13px">${p.nome}</b>
+    <b style="font-size:13px">${esc(p.nome)}</b>
     <div style="display:flex;gap:6px;align-items:center">
       <span class="mini">custo ${money(custoProd(p))} · venda ${money(p.preco)}</span>
       <button class="btn ghost sm" data-edit-prod="${p.id}">✏️</button>
       <span class="px" data-del-prod="${p.id}">✕</span>
     </div>
   </div>
-  <div style="margin-top:4px">${(p.ficha||[]).map(([iid,q])=>{const i=insumo(iid);return i?`<span class="chip">${i.nome} <b>${q}${i.un}</b></span>`:'';}).join('')||'<span class="mini" style="color:var(--muted2)">sem ficha</span>'}</div>
+  <div style="margin-top:4px">${(p.ficha||[]).map(([iid,q])=>{const i=insumo(iid);return i?`<span class="chip">${esc(i.nome)} <b>${q}${esc(i.un)}</b></span>`:'';}).join('')||'<span class="mini" style="color:var(--muted2)">sem ficha</span>'}</div>
   </div>`).join('')||'<div class="empty">Sem produtos</div>';
   document.querySelectorAll('[data-edit-prod]').forEach(btn=>btn.onclick=()=>editarProduto(btn.dataset.editProd));
   document.querySelectorAll('[data-del-prod]').forEach(x=>x.onclick=async()=>{
@@ -961,15 +1572,15 @@ function renderFornecedores(){
   ${low.length?`<div class="panel" style="margin-bottom:14px"><div class="ph"><h3 style="color:var(--ember)">🔔 Itens abaixo do mínimo — cotar agora</h3></div>
     <table><thead><tr><th>Item</th><th class="n">Repor</th><th>Enviar cotação</th></tr></thead><tbody>
     ${low.map(i=>{const need=Math.max(i.min-i.qtd,0);const sups=S.fornecedores.filter(f=>(f.insumos||[]).includes(i.id));
-      return `<tr><td>${i.nome}</td><td class="n">${need} ${i.un}</td><td>${sups.length
+      return `<tr><td>${esc(i.nome)}</td><td class="n">${need} ${esc(i.un)}</td><td>${sups.length
         ?sups.map(f=>{const msg=encodeURIComponent(`Olá ${f.nome}! Preciso cotar: ${need} ${i.un} de ${i.nome}. Qual o preço e prazo de entrega?`);
-          return `<a class="btn wpp sm" style="text-decoration:none;display:inline-block;margin:2px" target="_blank" href="https://wa.me/${f.whatsapp}?text=${msg}">📲 ${f.nome}</a>`;}).join('')
+          return `<a class="btn wpp sm" style="text-decoration:none;display:inline-block;margin:2px" target="_blank" href="https://wa.me/${f.whatsapp}?text=${msg}">📲 ${esc(f.nome)}</a>`;}).join('')
         :'<span class="mini" style="color:var(--muted2)">sem fornecedor cadastrado</span>'}</td></tr>`;}).join('')}
     </tbody></table><div class="hint">Disparo automático sem clicar é fase 2 (WhatsApp Business API).</div></div>`:''}
   <div class="panel"><div class="ph"><h3>Fornecedores</h3><button class="btn ghost sm" id="addForn">+ fornecedor</button></div>
     <table><thead><tr><th>Nome</th><th>WhatsApp</th><th>Itens</th><th></th></tr></thead><tbody id="forn_body"></tbody></table></div>`;
-  $('#forn_body').innerHTML=S.fornecedores.map(f=>`<tr><td><b>${f.nome}</b></td><td class="mini" style="font-family:'Space Mono'">${f.whatsapp}</td>
-    <td>${(f.insumos||[]).map(id=>{const i=insumo(id);return i?`<span class="chip">${i.nome}</span>`:''}).join('')||'<span class="mini">—</span>'}</td>
+  $('#forn_body').innerHTML=S.fornecedores.map(f=>`<tr><td><b>${esc(f.nome)}</b></td><td class="mini" style="font-family:'Space Mono'">${esc(f.whatsapp)}</td>
+    <td>${(f.insumos||[]).map(id=>{const i=insumo(id);return i?`<span class="chip">${esc(i.nome)}</span>`:''}).join('')||'<span class="mini">—</span>'}</td>
     <td class="n" style="white-space:nowrap"><button class="btn ghost sm" data-edit-forn="${f.id}" style="margin-right:4px">✏️</button><span class="px" data-del="${f.id}">✕</span></td></tr>`).join('')||'<tr><td colspan=4><div class="empty">Sem fornecedores</div></td></tr>';
   $('#addForn').onclick=addForn;
   document.querySelectorAll('[data-edit-forn]').forEach(btn=>btn.onclick=()=>editarFornecedor(btn.dataset.editForn));
@@ -1096,13 +1707,13 @@ function renderClientes(){
   <div class="panel" style="margin-bottom:14px">
     <div class="ph"><div><h3>${filtroTemp==='todos'?'Ranking completo':tempLabel(filtroTemp)}</h3>
     <div class="sub">${lista.length} clientes · por faturado</div></div></div>
-    <div style="overflow-x:auto"><table><thead><tr>
+    <div class="scrollx"><table><thead><tr>
       <th>Cliente</th><th>Bairro</th><th class="n">Compras</th><th class="n">Faturado</th>
       <th class="n">Ticket</th><th class="n">Último pedido</th><th>Temp.</th><th>Ações</th>
     </tr></thead><tbody>
     ${lista.map(c=>`<tr>
-      <td><b>${c.nome}</b><div class="mini">${c.whatsapp||'sem fone'}</div></td>
-      <td class="mini">${c.bairro||'—'}</td>
+      <td><b>${esc(c.nome)}</b><div class="mini">${esc(c.whatsapp)||'sem fone'}</div></td>
+      <td class="mini">${esc(c.bairro)||'—'}</td>
       <td class="n">${c.compras||0}</td>
       <td class="n">${money(c.faturado||0)}</td>
       <td class="n">${money(c.ticketMedio||0)}</td>
@@ -1191,14 +1802,36 @@ async function editarCliente(id){
 function renderConfig(){
   let histInfo='';
   try{ const h=JSON.parse(localStorage.getItem('comandaHist')||'[]'); histInfo=h.length?h.length+' backups locais · último: '+new Date(h[0].t).toLocaleString('pt-BR'):'nenhum backup ainda'; }catch(e){}
+  const cont = KEYS.map(k=>`${k}: <b>${(S[k]||[]).length}</b>`).join(' · ');
   view.innerHTML=`
   <div class="head"><div><div class="ey">Configurações</div><h1>Integração & Segurança</h1></div></div>
-  <div class="split">
+  <div class="split" style="grid-template-columns:1fr 1fr">
+  <div class="panel">
+    <h3 style="margin-bottom:6px">🔐 Chave de acesso deste aparelho</h3>
+    ${apiDesprotegida?`<div class="alert" style="margin-bottom:12px"><span>🚨</span><div>
+      <b>Sua API está sem chave.</b> A URL do Apps Script está dentro do arquivo público no GitHub —
+      qualquer pessoa que a copie lê e altera seu faturamento, custos e clientes.
+      Vá na planilha COMANDA → menu <b>🍔 Comanda Central → Gerar chave de acesso do app</b>.
+    </div></div>`:`<div class="mini" style="margin-bottom:12px;color:var(--green)">✅ Acesso protegido por chave — só aparelhos autorizados leem os dados.</div>`}
+    <div class="field"><label>Chave (fica salva só neste aparelho)</label>
+      <input class="url-inp" id="cfg_chave" type="password" value="${esc(ACCESS_KEY)}" placeholder="cole a chave aqui">
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="cfg_chave_salvar">Salvar chave</button>
+      <button class="btn ghost" id="cfg_chave_ver">👁 Mostrar</button>
+      <button class="btn ghost" id="cfg_chave_sair" style="border-color:var(--red);color:var(--red)">Esquecer neste aparelho</button>
+    </div>
+    <div class="hint" style="margin-top:14px">
+      Use "Esquecer neste aparelho" antes de vender, emprestar ou devolver um celular ou computador.
+      Se uma chave vazar, gere outra na planilha — todos os aparelhos precisarão da nova.
+      Seus dados locais continuam salvos aqui de qualquer forma.
+    </div>
+  </div>
   <div class="panel">
     <h3 style="margin-bottom:6px">Google Sheets</h3>
     <div style="margin-bottom:16px;font-size:13px;color:var(--muted)">Sistema v${APP_VERSION} — sincronização com mesclagem (nunca sobrescreve dados locais).</div>
     <div class="field"><label>URL do Apps Script</label>
-      <input class="url-inp" id="cfg_url" value="${SHEET_URL}" style="font-size:11px;color:var(--muted)">
+      <input class="url-inp" id="cfg_url" value="${esc(SHEET_URL)}" style="font-size:11px;color:var(--muted)">
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn" id="cfg_save">Salvar URL</button>
@@ -1215,7 +1848,28 @@ function renderConfig(){
     </div>
     <div class="hint">A cada salvamento o sistema guarda uma cópia neste dispositivo (últimas 15 versões), além do Google Sheets. Baixe o JSON periodicamente como terceira camada de segurança.</div>
   </div>
+  <div class="panel">
+    <h3 style="margin-bottom:6px">Registros carregados agora</h3>
+    <div class="mini" style="line-height:1.8">${cont}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      <button class="btn ghost" onclick="syncNow()">↻ Recarregar do Sheets</button>
+    </div>
+    <div class="hint">Se algum número aparecer zerado e você sabe que havia dados, <b>não salve nada</b>: baixe o backup JSON e depois recarregue do Sheets.</div>
+  </div>
   </div>`;
+  $('#cfg_chave_salvar').onclick=()=>{
+    setAccessKey($('#cfg_chave').value);
+    toast('Chave salva — recarregando');
+    setTimeout(()=>location.reload(), 700);
+  };
+  $('#cfg_chave_ver').onclick=()=>{
+    const el=$('#cfg_chave'); el.type = el.type==='password' ? 'text' : 'password';
+  };
+  $('#cfg_chave_sair').onclick=()=>{
+    if(!confirm('Apagar a chave deste aparelho? Ele deixa de acessar o Sheets até você colar a chave de novo.\n\nOs dados salvos neste dispositivo continuam aqui.')) return;
+    setAccessKey('');
+    location.reload();
+  };
   $('#cfg_save').onclick=()=>{
     SHEET_URL=$('#cfg_url').value.trim();
     localStorage.setItem('sheetUrl', SHEET_URL);
@@ -1228,7 +1882,7 @@ function renderConfig(){
       const r=await fetch(SHEET_URL+'?action=ping');
       const j=await r.json();
       $('#cfg_result').innerHTML=j.ok
-        ?'<span style="color:var(--green)">✅ Conexão OK!</span>'
+        ?'<span style="color:var(--green)">✅ Conexão OK!'+(j.protegido===false?' <b style="color:var(--gold)">— mas SEM chave de acesso</b>':'')+'</span>'
         :'<span style="color:var(--red)">❌ Erro: '+j.error+'</span>';
       if(j.ok){setSyncStatus('ok','Conectado');await sheetLoad();render();}
     }catch(e){
@@ -1273,7 +1927,8 @@ function renderConfig(){
   // e sempre com mesclagem (não sobrescreve nada)
   setInterval(async()=>{
     const digitando = document.activeElement && ['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName);
-    if (SHEET_URL && tab !== 'fechamento' && !editandoId && !digitando && syncStatus !== 'loading') {
+    const emEdicao = ['fechamento','retiradas','metas'].includes(tab);
+    if (SHEET_URL && !emEdicao && !editandoId && !digitando && syncStatus !== 'loading') {
       const ok = await sheetLoad();
       if (ok) render();
     }
