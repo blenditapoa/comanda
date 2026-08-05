@@ -347,8 +347,8 @@ function mostrarTrava(){
     <div class="lockbox">
       <div class="lockmark">🍔</div>
       <h2>Primeiro acesso</h2>
-      <p class="mini">Este aparelho ainda não tem usuário. Cole a chave de acesso (pegue na planilha COMANDA → menu 🍔 Comanda Central) e crie sua senha.</p>
-      <input class="inp" id="lk_chave" placeholder="chave de acesso" autocomplete="off">
+      <p class="mini">Este aparelho ainda não tem usuário. Crie seu nome e senha. A chave de acesso é opcional agora — se ainda não gerou na planilha, deixe em branco e cole depois em Configurações.</p>
+      <input class="inp" id="lk_chave" placeholder="chave de acesso (opcional por enquanto)" autocomplete="off">
       <input class="inp" id="lk_nome" placeholder="seu nome (ex: Kyan)" autocomplete="off" style="margin-top:8px">
       <input class="inp" type="password" id="lk_s1" placeholder="crie uma senha (mín. 6)" autocomplete="new-password" style="margin-top:8px">
       <input class="inp" type="password" id="lk_s2" placeholder="repita a senha" autocomplete="new-password" style="margin-top:8px">
@@ -387,7 +387,11 @@ function mostrarTrava(){
       const chave = document.getElementById('lk_chave').value.trim();
       const nome = document.getElementById('lk_nome').value.trim();
       const s1 = document.getElementById('lk_s1').value, s2 = document.getElementById('lk_s2').value;
-      if (!chave) { erro('Cole a chave de acesso.'); return; }
+      if (!chave && !confirm('Você não colou a chave de acesso.\n\n' +
+          'Tudo bem continuar se você ainda não gerou a chave na planilha — o sistema funciona ' +
+          'e a senha já protege este aparelho.\n\n' +
+          'Depois de gerar a chave, cole em ⚙️ Configurações → Atualizar chave de acesso.\n\n' +
+          'Continuar sem a chave?')) return;
       if (!nome)  { erro('Informe seu nome.'); return; }
       if (s1.length < 6) { erro('A senha precisa de pelo menos 6 caracteres.'); return; }
       if (s1 !== s2) { erro('As senhas não conferem.'); return; }
@@ -2035,6 +2039,7 @@ function renderConfig(){
       </div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn ghost" id="cfg_chave_upd">🔑 Atualizar chave de acesso</button>
       <button class="btn ghost" id="cfg_trocar_senha">Trocar minha senha</button>
       <button class="btn ghost" id="cfg_sair" style="border-color:var(--red);color:var(--red)">🔒 Sair</button>
     </div>
@@ -2106,6 +2111,21 @@ function renderConfig(){
     await criarUsuario(nome.trim(), s1, ACCESS_KEY);
     toast(nome.trim() + ' agora pode entrar neste aparelho');
     renderConfig();
+  };
+  $('#cfg_chave_upd').onclick = async ()=>{
+    const nova = prompt('Cole a chave de acesso da planilha\n(🍔 Comanda Central → Gerar chave de acesso do app):', '');
+    if (nova === null) return;
+    const senha = prompt('Confirme sua senha para regravar o cofre deste aparelho:');
+    if (senha === null) return;
+    const r = await entrar(SESSAO.id, senha);
+    if (!r.ok) { toast('Senha incorreta', true); return; }
+    const u = await criarUsuario(SESSAO.nome, senha, nova.trim());
+    SESSAO = { id:u.id, nome:u.nome, key:u.key };
+    ACCESS_KEY = nova.trim();
+    await lsSave();
+    toast('Chave atualizada neste aparelho');
+    if (authUsuarios().length > 1) alert('Atenção: os outros usuários deste aparelho ainda têm a chave antiga guardada. Cada um precisa entrar e fazer o mesmo, ou você remove e recadastra o acesso deles.');
+    syncNow();
   };
   $('#cfg_trocar_senha').onclick = async ()=>{
     const atual = prompt('Digite sua senha ATUAL:'); if(atual===null) return;
