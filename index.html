@@ -149,11 +149,21 @@ summary{cursor:pointer;font-size:12.5px;color:var(--muted);font-weight:600}
   .c3{grid-template-columns:1fr 1fr}
   .mbtn{display:grid !important}
 }
+/* tela de bloqueio */
+.lockscreen{position:fixed;inset:0;z-index:200;background:var(--bg);display:grid;place-items:center;padding:20px}
+.lockbox{width:100%;max-width:380px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px 24px;
+  box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.lockbox h2{font-size:20px;margin-bottom:6px}
+.lockbox p{margin:0 0 16px;line-height:1.5}
+.lockmark{width:46px;height:46px;border-radius:13px;background:linear-gradient(150deg,var(--ember),var(--gold));
+  display:grid;place-items:center;font-size:24px;margin-bottom:14px;box-shadow:0 6px 18px rgba(236,106,44,.35)}
+.lockusers{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.lockerr{min-height:18px;font-size:12px;color:#f0907f;margin:8px 0 4px}
 .mbtn{display:none;width:40px;height:40px;border-radius:9px;background:var(--panel);border:1px solid var(--line2);
   place-items:center;color:var(--cream);font-size:17px;margin-bottom:12px}
 </style>
 
-<div class="app">
+<div class="app" id="appwrap" style="visibility:hidden">
   <aside class="side" id="side">
     <div class="brand"><div class="mark">🍔</div><div><b>Comanda<br>Central</b><small>Hamburgueria</small></div></div>
     <nav class="nav" id="nav">
@@ -171,6 +181,7 @@ summary{cursor:pointer;font-size:12.5px;color:var(--muted);font-weight:600}
       <div style="font-size:11.5px;color:var(--muted);padding:4px 8px"><span class="sdot" id="sdot"></span><span id="slabel">Sem sync</span></div>
       <button class="sync-btn" onclick="syncNow()" style="cursor:pointer">↻ Sincronizar agora</button>
       <button id="backupBtn">🛟 Backup / Restaurar</button>
+      <button id="sairBtn">🔒 Sair (bloquear)</button>
       <div class="vtag" id="vtag"></div>
     </div>
   </aside>
@@ -180,6 +191,7 @@ summary{cursor:pointer;font-size:12.5px;color:var(--muted);font-weight:600}
   </main>
 </div>
 <div class="toast" id="toast"></div>
+<div class="lockscreen" id="lockscreen"></div>
 
 <script>
 // ============================================================
@@ -208,19 +220,187 @@ let SHEET_URL = localStorage.getItem('sheetUrl') || 'https://script.google.com/m
 // ------------------------------------------------------------
 let ACCESS_KEY = '';
 try { ACCESS_KEY = localStorage.getItem('ccChave') || ''; } catch(e) {}
-function setAccessKey(k){ ACCESS_KEY = (k||'').trim(); try{ localStorage.setItem('ccChave', ACCESS_KEY); }catch(e){} }
 function urlK(base){ return base + (base.indexOf('?')>-1?'&':'?') + 'k=' + encodeURIComponent(ACCESS_KEY); }
 let precisaChave = false;    // backend recusou por chave inválida
 let apiDesprotegida = false; // backend está sem chave configurada
 function pedirChave(){
-  const aviso = ACCESS_KEY ? ' (a chave deste aparelho não foi aceita)' : '';
-  const k = prompt('🔐 Chave de acesso do Comanda Central' + aviso +
-    '\n\nPegue na planilha COMANDA → menu 🍔 Comanda Central → Gerar chave de acesso do app.\n' +
-    'Ela fica guardada só neste aparelho.\n\nSeus dados locais continuam salvos aqui de qualquer forma.', '');
-  if (k === null) return;
-  setAccessKey(k);
-  location.reload();
+  toast('🔐 O servidor recusou a chave deste aparelho', true);
+  if (confirm('A chave de acesso guardada neste aparelho não foi aceita pelo servidor.\n\n' +
+      'Isso acontece quando uma chave nova foi gerada na planilha.\n\n' +
+      'Refazer o cadastro deste aparelho agora? Você vai precisar da chave de acesso atual.\n' +
+      'Os dados no Google Sheets não são afetados.')) {
+    try{ localStorage.removeItem('ccAuth'); }catch(e){}
+    sair();
+  }
 }
+
+
+// ============================================================
+//  LOGIN, CRIPTOGRAFIA E BLOQUEIO
+//
+//  Como funciona (e por que é assim):
+//  Este arquivo é público no GitHub. Senha escrita no código não
+//  protege nada. Aqui a senha DERIVA uma chave (PBKDF2, 250 mil
+//  iterações) que CIFRA a chave de acesso e o cache local
+//  (AES-GCM). Sem a senha certa o aparelho não tem chave
+//  utilizável e os dados guardados nele ficam ilegíveis — mesmo
+//  para quem abrir o console do navegador.
+// ============================================================
+const CRY = {
+  enc: new TextEncoder(), dec: new TextDecoder(),
+  b64(buf){
+    const b = new Uint8Array(buf); let s = '';
+    for (let i=0;i<b.length;i+=0x8000) s += String.fromCharCode.apply(null, b.subarray(i,i+0x8000));
+    return btoa(s);
+  },
+  ub64(s){ return Uint8Array.from(atob(s), c=>c.charCodeAt(0)); },
+  novoSalt(){ return CRY.b64(crypto.getRandomValues(new Uint8Array(16))); },
+  async derivar(senha, saltB64){
+    const base = await crypto.subtle.importKey('raw', CRY.enc.encode(senha), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey(
+      { name:'PBKDF2', salt: CRY.ub64(saltB64), iterations: 250000, hash:'SHA-256' },
+      base, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
+  },
+  async cifrar(texto, key){
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, CRY.enc.encode(texto));
+    return { iv: CRY.b64(iv), ct: CRY.b64(ct) };
+  },
+  // devolve null se a senha estiver errada (o AES-GCM detecta pela tag de autenticação)
+  async decifrar(blob, key){
+    try{
+      const pt = await crypto.subtle.decrypt({ name:'AES-GCM', iv: CRY.ub64(blob.iv) }, key, CRY.ub64(blob.ct));
+      return CRY.dec.decode(pt);
+    }catch(e){ return null; }
+  }
+};
+
+// ---------- usuários deste aparelho ----------
+// { v:1, usuarios:[{id, nome, salt, cofre:{iv,ct}}] }   cofre = chave de acesso cifrada
+function authLer(){ try{ return JSON.parse(localStorage.getItem('ccAuth')||'null'); }catch(e){ return null; } }
+function authGravar(o){ try{ localStorage.setItem('ccAuth', JSON.stringify(o)); }catch(e){} }
+function authUsuarios(){ const a = authLer(); return (a && Array.isArray(a.usuarios)) ? a.usuarios : []; }
+
+let SESSAO = { id:null, nome:null, key:null };
+const LOGADO = () => !!SESSAO.key;
+
+async function criarUsuario(nome, senha, chaveAcesso){
+  const salt = CRY.novoSalt();
+  const key = await CRY.derivar(senha, salt);
+  const cofre = await CRY.cifrar(chaveAcesso, key);
+  const a = authLer() || { v:1, usuarios:[] };
+  const id = nome.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,20) || ('u'+Date.now());
+  a.usuarios = a.usuarios.filter(u=>u.id!==id);
+  a.usuarios.push({ id, nome, salt, cofre });
+  authGravar(a);
+  return { id, nome, key };
+}
+
+async function entrar(id, senha){
+  const u = authUsuarios().find(x=>x.id===id);
+  if (!u) return { ok:false, erro:'Usuário não encontrado neste aparelho.' };
+  const key = await CRY.derivar(senha, u.salt);
+  const chave = await CRY.decifrar(u.cofre, key);
+  if (chave === null) return { ok:false, erro:'Senha incorreta.' };
+  SESSAO = { id:u.id, nome:u.nome, key };
+  ACCESS_KEY = chave;
+  return { ok:true };
+}
+
+function sair(){
+  SESSAO = { id:null, nome:null, key:null };
+  ACCESS_KEY = '';
+  S = { fechamentos:[], retiradas:[], config:[], produtos:[], insumos:[], fornecedores:[], clientes:[] };
+  clearTimeout(_travaTimer);
+  mostrarTrava();
+}
+
+// ---------- bloqueio por inatividade ----------
+let _travaTimer = null;
+function minutosTrava(){ const n = +localStorage.getItem('ccTrava'); return isNaN(n) ? 30 : n; }
+function armarTrava(){
+  clearTimeout(_travaTimer);
+  const min = minutosTrava();
+  if (min <= 0 || !LOGADO()) return;
+  _travaTimer = setTimeout(()=>{ toast('Sessão bloqueada por inatividade'); sair(); }, min*60000);
+}
+['click','keydown','touchstart'].forEach(ev=>document.addEventListener(ev, ()=>{ if(LOGADO()) armarTrava(); }, {passive:true}));
+
+// ---------- tela de bloqueio ----------
+function mostrarTrava(){
+  const users = authUsuarios();
+  const box = document.getElementById('lockscreen');
+  box.style.display = 'grid';
+  box.innerHTML = users.length ? `
+    <div class="lockbox">
+      <div class="lockmark">🍔</div>
+      <h2>Comanda Central</h2>
+      <p class="mini">Acesso restrito. Escolha o usuário e digite a senha.</p>
+      <div class="lockusers">
+        ${users.map(u=>`<button class="btn ghost sm lu" data-u="${u.id}">${esc(u.nome)}</button>`).join('')}
+      </div>
+      <input class="inp" type="password" id="lk_senha" placeholder="senha" autocomplete="current-password">
+      <div id="lk_erro" class="lockerr"></div>
+      <button class="btn" id="lk_entrar" style="width:100%">Entrar</button>
+      <button class="btn ghost sm" id="lk_esqueci" style="width:100%;margin-top:8px">Esqueci a senha</button>
+    </div>` : `
+    <div class="lockbox">
+      <div class="lockmark">🍔</div>
+      <h2>Primeiro acesso</h2>
+      <p class="mini">Este aparelho ainda não tem usuário. Cole a chave de acesso (pegue na planilha COMANDA → menu 🍔 Comanda Central) e crie sua senha.</p>
+      <input class="inp" id="lk_chave" placeholder="chave de acesso" autocomplete="off">
+      <input class="inp" id="lk_nome" placeholder="seu nome (ex: Kyan)" autocomplete="off" style="margin-top:8px">
+      <input class="inp" type="password" id="lk_s1" placeholder="crie uma senha (mín. 6)" autocomplete="new-password" style="margin-top:8px">
+      <input class="inp" type="password" id="lk_s2" placeholder="repita a senha" autocomplete="new-password" style="margin-top:8px">
+      <div id="lk_erro" class="lockerr"></div>
+      <button class="btn" id="lk_criar" style="width:100%">Criar acesso</button>
+    </div>`;
+
+  let sel = users[0]?.id || null;
+  const marca = ()=>box.querySelectorAll('.lu').forEach(b=>b.classList.toggle('gold', b.dataset.u===sel));
+  marca();
+  box.querySelectorAll('.lu').forEach(b=>b.onclick=()=>{ sel=b.dataset.u; marca(); document.getElementById('lk_senha').focus(); });
+
+  const erro = m => { document.getElementById('lk_erro').textContent = m; };
+
+  if (users.length) {
+    const tentar = async ()=>{
+      const senha = document.getElementById('lk_senha').value;
+      if (!sel) { erro('Escolha o usuário.'); return; }
+      if (!senha) { erro('Digite a senha.'); return; }
+      erro('Verificando...');
+      const r = await entrar(sel, senha);
+      if (!r.ok) { erro(r.erro); return; }
+      esconderTrava();
+      await iniciarSessao();
+    };
+    document.getElementById('lk_entrar').onclick = tentar;
+    document.getElementById('lk_senha').addEventListener('keydown', e=>{ if(e.key==='Enter') tentar(); });
+    document.getElementById('lk_senha').focus();
+    document.getElementById('lk_esqueci').onclick = ()=>{
+      if (!confirm('Para recuperar o acesso você precisa da CHAVE DE ACESSO (a que está guardada no seu gerenciador de senhas).\n\nIsso apaga os usuários deste aparelho e recomeça o cadastro. Os dados no Google Sheets não são afetados.\n\nContinuar?')) return;
+      try{ localStorage.removeItem('ccAuth'); localStorage.removeItem('comandaData'); localStorage.removeItem('comandaHist'); }catch(e){}
+      mostrarTrava();
+    };
+  } else {
+    document.getElementById('lk_criar').onclick = async ()=>{
+      const chave = document.getElementById('lk_chave').value.trim();
+      const nome = document.getElementById('lk_nome').value.trim();
+      const s1 = document.getElementById('lk_s1').value, s2 = document.getElementById('lk_s2').value;
+      if (!chave) { erro('Cole a chave de acesso.'); return; }
+      if (!nome)  { erro('Informe seu nome.'); return; }
+      if (s1.length < 6) { erro('A senha precisa de pelo menos 6 caracteres.'); return; }
+      if (s1 !== s2) { erro('As senhas não conferem.'); return; }
+      erro('Criando...');
+      const u = await criarUsuario(nome, s1, chave);
+      SESSAO = { id:u.id, nome:u.nome, key:u.key };
+      ACCESS_KEY = chave;
+      esconderTrava();
+      await iniciarSessao();
+    };
+  }
+}
+function esconderTrava(){ const b=document.getElementById('lockscreen'); b.style.display='none'; b.innerHTML=''; }
 
 // ============================================================
 //  ESTADO
@@ -295,10 +475,27 @@ function isRegistroReal(x){ return x && typeof x.id === 'string' && x.id.length 
 // ============================================================
 //  PERSISTÊNCIA LOCAL (localStorage) — nada se perde nunca
 // ============================================================
-function lsSave(){ try{ localStorage.setItem('comandaData', JSON.stringify(S)); }catch(e){} }
-function lsLoad(){
+// Tudo que fica no aparelho é gravado CIFRADO com a chave derivada da senha.
+// Quem abrir o navegador sem a senha vê só texto embaralhado.
+async function lsSave(){
+  if (!LOGADO()) return;
   try{
-    const d = JSON.parse(localStorage.getItem('comandaData')||'null');
+    const blob = await CRY.cifrar(JSON.stringify(S), SESSAO.key);
+    localStorage.setItem('comandaData', JSON.stringify({ e:1, iv:blob.iv, ct:blob.ct }));
+  }catch(e){}
+}
+async function lsLoad(){
+  if (!LOGADO()) return false;
+  try{
+    const raw = localStorage.getItem('comandaData');
+    if (!raw) return false;
+    let d = JSON.parse(raw);
+    if (d && d.e === 1) {
+      const txt = await CRY.decifrar(d, SESSAO.key);
+      if (txt === null) return false;      // gravado por outro usuário/senha
+      d = JSON.parse(txt);
+    }
+    // (formato antigo em texto puro é lido normalmente e regravado cifrado no próximo save)
     if (!d) return false;
     KEYS.forEach(k=>{ if (Array.isArray(d[k])) S[k] = d[k]; });
     S.fechamentos = S.fechamentos.map(normFech).filter(isRegistroReal);
@@ -306,12 +503,24 @@ function lsLoad(){
     return true;
   }catch(e){ return false; }
 }
-function lsSnapshot(){
+async function lsHist(){
+  if (!LOGADO()) return [];
   try{
-    const h = JSON.parse(localStorage.getItem('comandaHist')||'[]');
+    const raw = localStorage.getItem('comandaHist');
+    if (!raw) return [];
+    const p = JSON.parse(raw);
+    if (p && p.e === 1) { const t = await CRY.decifrar(p, SESSAO.key); return t ? JSON.parse(t) : []; }
+    return Array.isArray(p) ? p : [];
+  }catch(e){ return []; }
+}
+async function lsSnapshot(){
+  if (!LOGADO()) return;
+  try{
+    const h = await lsHist();
     h.unshift({ t:new Date().toISOString(), n:(S.fechamentos||[]).length, data:JSON.stringify(S) });
     while (h.length > 15) h.pop();
-    localStorage.setItem('comandaHist', JSON.stringify(h));
+    const blob = await CRY.cifrar(JSON.stringify(h), SESSAO.key);
+    localStorage.setItem('comandaHist', JSON.stringify({ e:1, iv:blob.iv, ct:blob.ct }));
   }catch(e){}
 }
 function getDeleted(){
@@ -375,7 +584,7 @@ async function sheetLoad() {
         const { merged, extras } = mergeColl(local, remote);
         S[k] = merged; pendentes += extras;
       });
-      lsSave();
+      await lsSave();
       setSyncStatus('ok', 'Atualizado ' + hora());
       if (pendentes > 0) {
         // Há registros locais que não estão no Sheets — reenvia
@@ -390,7 +599,7 @@ async function sheetLoad() {
 let _saveRetries = 0, _verifyTimer = null;
 async function sheetSave() {
   // 1) SEMPRE salva local primeiro — o dado nunca se perde
-  lsSave(); lsSnapshot();
+  await lsSave(); await lsSnapshot();
   if (!SHEET_URL) return;
   if (precisaChave) { setSyncStatus('err', 'Chave necessária — salvo no dispositivo'); return; }
   setSyncStatus('loading', 'Salvando...');
@@ -652,11 +861,11 @@ $('#nav').addEventListener('click', e => {
 });
 $('#menuBtn').addEventListener('click',()=>$('#side').classList.toggle('open'));
 $('#backupBtn').addEventListener('click', mostrarBackups);
+$('#sairBtn').addEventListener('click', ()=>{ if(confirm('Bloquear o sistema agora?')) sair(); });
 $('#vtag').textContent = 'v' + APP_VERSION;
 
-function mostrarBackups(){
-  let h = [];
-  try{ h = JSON.parse(localStorage.getItem('comandaHist')||'[]'); }catch(e){}
+async function mostrarBackups(){
+  const h = await lsHist();
   if (!h.length) { toast('Nenhum backup local ainda — eles são criados a cada salvamento'); return; }
   const lista = h.map((x,i)=>`${i+1}. ${new Date(x.t).toLocaleString('pt-BR')} — ${x.n} fechamentos`).join('\n');
   const sel = prompt('BACKUPS LOCAIS (deste dispositivo)\nDigite o número para RESTAURAR, ou cancele:\n\n'+lista);
@@ -795,6 +1004,8 @@ function renderFechamento() {
       renderVendasBox();
     }
     $('#cancelEdit').onclick = ()=>{ editandoId=null; draftVendas=[]; render(); };
+  } else if (SESSAO.nome) {
+    $('#f_caixa').value = SESSAO.nome;      // quem está logado assina o fechamento
   }
 
   ['f_total','f_ti','f_tf','f_mrep','f_mpix'].concat(CONF_CAMPOS.map(c=>c.id))
@@ -1807,6 +2018,33 @@ function renderConfig(){
   <div class="head"><div><div class="ey">Configurações</div><h1>Integração & Segurança</h1></div></div>
   <div class="split" style="grid-template-columns:1fr 1fr">
   <div class="panel">
+    <h3 style="margin-bottom:6px">🔐 Acesso deste aparelho</h3>
+    <div class="mini" style="margin-bottom:10px">Conectado como <b style="color:var(--cream)">${esc(SESSAO.nome||'—')}</b></div>
+    <div style="margin-bottom:12px">
+      <div class="mini" style="margin-bottom:6px">Usuários com senha neste aparelho:</div>
+      ${authUsuarios().map(u=>`<span class="chip">${esc(u.nome)}${u.id===SESSAO.id?' <b>(você)</b>':''} <span class="px" data-delu="${u.id}">✕</span></span>`).join('')||'<span class="mini">nenhum</span>'}
+    </div>
+    <div class="row c2">
+      <div class="field" style="margin-bottom:8px"><label>Bloquear após</label>
+        <select class="inp" id="cfg_trava">
+          ${[[15,'15 minutos'],[30,'30 minutos'],[60,'1 hora'],[120,'2 horas'],[0,'não bloquear']].map(([v,l])=>`<option value="${v}" ${minutosTrava()===v?'selected':''}>${l}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:8px"><label>&nbsp;</label>
+        <button class="btn ghost" id="cfg_addu" style="width:100%">+ adicionar usuário</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn ghost" id="cfg_trocar_senha">Trocar minha senha</button>
+      <button class="btn ghost" id="cfg_sair" style="border-color:var(--red);color:var(--red)">🔒 Sair</button>
+    </div>
+    <div class="hint" style="margin-top:14px">
+      A senha embaralha a chave de acesso e os dados guardados neste aparelho.
+      Sem ela, nem abrindo o console do navegador dá para ler os números.
+      Só adicione usuário para quem realmente pode ver o financeiro.
+    </div>
+  </div>
+  <div class="panel" style="display:none">
     <h3 style="margin-bottom:6px">🔐 Chave de acesso deste aparelho</h3>
     ${apiDesprotegida?`<div class="alert" style="margin-bottom:12px"><span>🚨</span><div>
       <b>Sua API está sem chave.</b> A URL do Apps Script está dentro do arquivo público no GitHub —
@@ -1857,6 +2095,39 @@ function renderConfig(){
     <div class="hint">Se algum número aparecer zerado e você sabe que havia dados, <b>não salve nada</b>: baixe o backup JSON e depois recarregue do Sheets.</div>
   </div>
   </div>`;
+  $('#cfg_trava').onchange = e => { localStorage.setItem('ccTrava', e.target.value); armarTrava(); toast('Bloqueio automático atualizado'); };
+  $('#cfg_sair').onclick = ()=>{ if(confirm('Bloquear o sistema agora?')) sair(); };
+  $('#cfg_addu').onclick = async ()=>{
+    const nome = prompt('Nome do novo usuário (ex: Ana):'); if(!nome||!nome.trim()) return;
+    const s1 = prompt('Senha para ' + nome.trim() + ' (mínimo 6 caracteres):'); if(s1===null) return;
+    if (String(s1).length < 6) { toast('Senha muito curta', true); return; }
+    const s2 = prompt('Repita a senha:'); if(s2===null) return;
+    if (s1 !== s2) { toast('As senhas não conferem', true); return; }
+    await criarUsuario(nome.trim(), s1, ACCESS_KEY);
+    toast(nome.trim() + ' agora pode entrar neste aparelho');
+    renderConfig();
+  };
+  $('#cfg_trocar_senha').onclick = async ()=>{
+    const atual = prompt('Digite sua senha ATUAL:'); if(atual===null) return;
+    const r = await entrar(SESSAO.id, atual);
+    if (!r.ok) { toast('Senha atual incorreta', true); return; }
+    const s1 = prompt('Nova senha (mínimo 6):'); if(s1===null) return;
+    if (String(s1).length < 6) { toast('Senha muito curta', true); return; }
+    const s2 = prompt('Repita a nova senha:'); if(s2===null) return;
+    if (s1 !== s2) { toast('As senhas não conferem', true); return; }
+    const u = await criarUsuario(SESSAO.nome, s1, ACCESS_KEY);
+    SESSAO = { id:u.id, nome:u.nome, key:u.key };
+    await lsSave();
+    toast('Senha alterada');
+  };
+  document.querySelectorAll('[data-delu]').forEach(x=>x.onclick=async()=>{
+    const id = x.dataset.delu;
+    if (id === SESSAO.id) { toast('Você não pode remover o próprio acesso aqui — use "Sair"', true); return; }
+    const u = authUsuarios().find(y=>y.id===id);
+    if (!confirm('Remover o acesso de ' + (u?u.nome:id) + ' neste aparelho?\n\nEle deixa de conseguir entrar aqui. Nos outros aparelhos nada muda.')) return;
+    const a = authLer(); a.usuarios = a.usuarios.filter(y=>y.id!==id); authGravar(a);
+    toast('Acesso removido'); renderConfig();
+  });
   $('#cfg_chave_salvar').onclick=()=>{
     setAccessKey($('#cfg_chave').value);
     toast('Chave salva — recarregando');
@@ -1907,8 +2178,10 @@ function renderConfig(){
 //  2) Google Sheets com MESCLAGEM (traz o que outros dispositivos salvaram)
 //  3) seed só se estiver absolutamente tudo vazio
 // ============================================================
-(async function(){
-  const temLocal = lsLoad();
+async function iniciarSessao(){
+  document.getElementById('appwrap').style.visibility = 'visible';
+  armarTrava();
+  const temLocal = await lsLoad();
   if (temLocal) { render(); setSyncStatus('loading', 'Dados locais carregados — sincronizando...'); }
   if (SHEET_URL) {
     const ok = await sheetLoad();
@@ -1923,12 +2196,17 @@ function renderConfig(){
     setSyncStatus('none', 'Configure em ⚙️');
   }
   render();
+  await lsSave();   // regrava cifrado (migra o formato antigo em texto puro)
+}
+
+(async function(){
+  mostrarTrava();
   // Auto-sync a cada 2 minutos — nunca durante digitação/edição,
   // e sempre com mesclagem (não sobrescreve nada)
   setInterval(async()=>{
     const digitando = document.activeElement && ['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName);
     const emEdicao = ['fechamento','retiradas','metas'].includes(tab);
-    if (SHEET_URL && !emEdicao && !editandoId && !digitando && syncStatus !== 'loading') {
+    if (LOGADO() && SHEET_URL && !emEdicao && !editandoId && !digitando && syncStatus !== 'loading') {
       const ok = await sheetLoad();
       if (ok) render();
     }
