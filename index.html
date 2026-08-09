@@ -554,12 +554,63 @@ function hora(){ return new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',mi
 
 // Mescla: registros do Sheets + registros locais que ainda não subiram.
 // NUNCA descarta um registro local só porque o Sheets não o tem.
+/* v2.2 - resolucao de conflito por edicao local.
+   Guarda a assinatura de cada registro no momento em que ele ficou igual ao
+   Sheets. Se a versao local mudou depois disso, e uma EDICAO ainda nao
+   sincronizada e deve vencer o remoto - em vez de ser descartada. */
+function _sig(o){
+  try{
+    const s = JSON.stringify(o);
+    let h = 5381;
+    for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+    return h.toString(36) + '.' + s.length;
+  }catch(e){ return ''; }
+}
+function syncedGet(){
+  try{ return JSON.parse(localStorage.getItem('ccSynced') || '{}') || {}; }catch(e){ return {}; }
+}
+function syncedSet(m){
+  try{
+    const ids = Object.keys(m);
+    if (ids.length > 4000) ids.slice(0, ids.length - 4000).forEach(id => delete m[id]);
+    localStorage.setItem('ccSynced', JSON.stringify(m));
+  }catch(e){}
+}
+
 function mergeColl(local, remote){
+  const sync = syncedGet();
   const map = new Map();
-  remote.forEach(r=>{ if (isRegistroReal(r)) map.set(r.id, r); });
+  remote.forEach(r => { if (isRegistroReal(r)) map.set(r.id, r); });
+
   const extras = [];
-  (local||[]).forEach(l=>{ if (isRegistroReal(l) && !map.has(l.id)) extras.push(l); });
-  return { merged: [...map.values(), ...extras], extras: extras.length };
+  let editados = 0;
+
+  (local || []).forEach(l => {
+    if (!isRegistroReal(l)) return;
+    if (!map.has(l.id)) { extras.push(l); return; }
+
+    const r  = map.get(l.id);
+    const sl = _sig(l), sr = _sig(r);
+
+    if (sl === sr) { sync[l.id] = sl; return; }
+
+    if (sync[l.id] && sync[l.id] !== sl) {
+      // Local mudou DEPOIS da ultima vez que estava igual ao Sheets:
+      // edicao pendente. Local vence e sera reenviado. Assinatura nao e
+      // atualizada: continua pendente ate o Sheets confirmar.
+      map.set(l.id, l);
+      editados++;
+    } else {
+      sync[l.id] = sr;
+    }
+  });
+
+  remote.forEach(r => {
+    if (isRegistroReal(r) && sync[r.id] === undefined) sync[r.id] = _sig(r);
+  });
+
+  syncedSet(sync);
+  return { merged: [...map.values(), ...extras], extras: extras.length + editados };
 }
 
 async function sheetLoad() {
