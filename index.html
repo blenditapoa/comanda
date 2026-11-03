@@ -2385,3 +2385,37 @@ iniciarSessao = async function(){
   }catch(e){}
 };
 </script>
+<script>
+// ============================================================
+//  COMPLEMENTO BLEND v3 (03/11/2026) — batata e carne por PORÇÃO
+//  Batata: 1 porção = 150 g · Hambúrguer bovino: 1 un = 160 g.
+//  Só converte se ainda estiver como a v2 deixou.
+// ============================================================
+const BLEND_V3_FICHAS=[["p_carne_queijo",[["j73jc4y",1.0],["nakj3yd",1.0],["lp65pgc",0.02],["b_sal_temperado",0.002]]],["p_classic_salad",[["j73jc4y",1.0],["nakj3yd",1.0],["lp65pgc",0.02],["b_cebola",0.02],["b_tomate",0.04],["b_alface_folha",1],["b_maionese_da_casa",0.05],["b_sal_temperado",0.002]]],["p_classic_bacon",[["j73jc4y",1.0],["nakj3yd",1.0],["lp65pgc",0.02],["i4",0.03],["b_alface_folha",1],["b_tomate",0.04],["b_picles",0.02],["b_sal_temperado",0.002]]],["p_baconator",[["j73jc4y",1.0],["nakj3yd",1.0],["i3",0.02],["i4",0.02],["b_maionese_de_bacon",0.05],["b_sal_temperado",0.002]]],["p_supreme",[["j73jc4y",1.0],["nakj3yd",1.0],["i3",0.02],["i4",0.03],["86ml1z3",3],["b_molho_bbq",0.03],["b_sal_temperado",0.002]]],["p_double_smash_bacon",[["j73jc4y",1.0],["nakj3yd",1.0],["i3",0.04],["i4",0.02],["b_maionese_de_bacon",0.05],["b_sal_temperado",0.002]]],["p_no_name",[["j73jc4y",1.0],["nakj3yd",1.0],["b_disco_de_catupiry_empana",1],["i3",0.04],["b_geleia_de_pimenta",0.05],["b_maionese_da_casa",0.05],["b_sal_temperado",0.002]]],["p_catuburger",[["j73jc4y",1.0],["nakj3yd",1.0],["i3",0.02],["b_disco_de_catupiry_empana",1],["i4",0.02],["b_sal_temperado",0.002]]],["p_o_picles",[["j73jc4y",1.0],["nakj3yd",1.0],["i3",0.02],["i4",0.02],["b_ketchup",0.05],["b_picles",0.04],["b_cebola",0.02],["b_maionese_da_casa",0.05],["b_sal_temperado",0.002]]],["p_gouda_boy",[["j73jc4y",1.0],["nakj3yd",1.0],["i3",0.02],["mig32tg",0.02],["b_geleia_de_pimenta",0.05],["b_maionese_da_casa",0.05],["b_sal_temperado",0.002]]],["p_australian",[["aguzeee",1],["nakj3yd",1.0],["i3",0.02],["i4",0.03],["b_cebola_caramelizada",0.03],["b_molho_bbq",0.02],["b_sal_temperado",0.002]]],["p_supreme_pork",[["aguzeee",1],["nakj3yd",1.0],["r1p8ud1",0.1],["86ml1z3",3],["b_pernil_suino",0.08],["b_molho_bbq",0.05]]],["p_blend_melted",[["j73jc4y",1.0],["nakj3yd",1.0],["b_creme_de_cheddar",0.145],["b_farofa_de_bacon",0.05],["b_potinho",1]]],["p_dr_cheese",[["j73jc4y",1.0],["nakj3yd",1.0],["i3",0.04],["b_creme_de_cheddar",0.03],["b_sal_temperado",0.002]]],["p_the_big_blend",[["j73jc4y",1.0],["nakj3yd",2.0],["i3",0.04],["b_alface_folha",1],["b_tomate",0.04],["b_maionese_da_casa",0.05],["b_sal_temperado",0.002]]],["p_smash_classico",[["j73jc4y",1.0],["nakj3yd",0.5],["lp65pgc",0.02],["b_tomate",0.03],["b_alface_folha",1],["b_sal_temperado",0.002]]],["p_the_ranch",[["j73jc4y",1.0],["nakj3yd",0.5],["lp65pgc",0.02],["b_molho_ranch",0.02],["b_alface_folha",1],["b_sal_temperado",0.002]]],["p_kids_blend",[["j73jc4y",1.0],["nakj3yd",0.5],["lp65pgc",0.02],["b_sal_temperado",0.002]]],["p_oh_my_pork",[["j73jc4y",1.0],["nakj3yd",1.0],["b_pernil_suino",0.08],["i3",0.02],["b_maionese_da_casa",0.05]]],["p_havaiano",[["j73jc4y",1.0],["nakj3yd",1.0],["i3",0.02],["i4",0.02],["b_abacaxi",0.03],["b_maionese_da_casa",0.05]]],["p_x_salada",[["b_pao_da_vo",1],["nakj3yd",1.0],["b_alface_folha",1],["b_tomate",0.03],["b_mostarda",0.02],["b_ketchup",0.02],["b_maionese_da_casa",0.1],["m43ffr8",0.02],["b_papel_de_embrulho",1]]],["p_x_bacon",[["b_pao_da_vo",1],["nakj3yd",1.0],["b_alface_folha",1],["b_tomate",0.03],["b_mostarda",0.02],["b_ketchup",0.02],["b_maionese_da_casa",0.1],["m43ffr8",0.02],["b_papel_de_embrulho",1],["i4",0.02]]],["p_x_egg",[["b_pao_da_vo",1],["nakj3yd",1.0],["b_alface_folha",1],["b_tomate",0.03],["b_mostarda",0.02],["b_ketchup",0.02],["b_maionese_da_casa",0.1],["m43ffr8",0.02],["b_papel_de_embrulho",1],["b_ovo",1]]],["p_x_burguer",[["b_pao_da_vo",1],["nakj3yd",1.0],["m43ffr8",0.02],["b_maionese_da_casa",0.1],["b_papel_de_embrulho",1]]],["p_x_catupiry",[["b_pao_da_vo",1],["nakj3yd",1.0],["r1p8ud1",0.1],["b_cebola_caramelizada",0.06],["b_maionese_da_casa",0.1],["b_papel_de_embrulho",1]]],["p_combo_kids",[["nakj3yd",0.25],["b_mini_pao",1],["b_alface_folha",1],["b_tomate",0.03],["i5",1.0],["b_saquinho_batata",1]]],["p_rodizio_por_pessoa",[["nakj3yd",1.65],["i3",0.132],["b_mini_pao",6.6],["mig32tg",0.132],["b_geleia_de_pimenta",0.132],["i5",0.5],["86ml1z3",4],["oge8222",0.0625]]],["p_porcao_de_batata_frita_4",[["i5",3.0],["b_caixinha",1]]],["p_batata_individual_150_g",[["i5",1.0],["b_saquinho_batata",1]]],["p_porcao_de_batata_melted",[["i5",3.0],["b_creme_de_cheddar",0.145],["i4",0.02],["b_potinho",1]]],["p_pork_fries",[["i5",3.0],["b_pernil_suino",0.08],["b_maionese_de_bacon",0.06]]],["p_combo_batata_150_g_refri",[["i5",1.0],["b_saquinho_batata",1],["b_refrigerante_suco_lata",1]]],["p_adicional_burger_e_queij",[["nakj3yd",1.0],["i3",0.02]]]];
+const BLEND_V3_UN={
+  i5:     [['kg',0.275,6],    ['porção 150 g',1/0.15,2.184,'BATATA 7MM (PORÇÃO 150 g)']],
+  nakj3yd:[['kg',404.64,80],  ['un 160 g',1/0.16,6.4432,'HAMBÚRGUER BOVINO 160 g']],
+};
+function complementoBlendV3(){
+  const FLAG='ccBlendV3';
+  try{ if (localStorage.getItem(FLAG)) return false; }catch(e){ return false; }
+  let mudou=0;
+  Object.entries(BLEND_V3_UN).forEach(([id,[[u0,q0,m0],[u1,fa,c1,n1]]])=>{
+    const i=S.insumos.find(x=>x.id===id); if(!i) return;
+    if (String(i.un).trim()!==u0 || Math.abs(_num(i.qtd)-q0)>1e-6 || Math.abs(_num(i.min)-m0)>1e-6) return;
+    i.qtd=Math.round(q0*fa*100)/100; i.min=Math.round(m0*fa*100)/100;
+    i.un=u1; i.custo=c1; i.nome=n1; mudou++;
+  });
+  BLEND_V3_FICHAS.forEach(([id,ficha])=>{ const p=S.produtos.find(x=>x.id===id); if(p){ p.ficha=ficha; mudou++; } });
+  try{ localStorage.setItem(FLAG,new Date().toISOString()); }catch(e){}
+  return mudou>0;
+}
+const _iniciarSessaoV2 = iniciarSessao;
+iniciarSessao = async function(){
+  await _iniciarSessaoV2();
+  try{
+    if (!SHEET_URL) return;
+    if (localStorage.getItem('ccBlendV2') && complementoBlendV3()) { await sheetSave(); render(); toast('Batata e carne agora por porção'); }
+  }catch(e){}
+};
+</script>
