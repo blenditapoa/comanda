@@ -2419,3 +2419,87 @@ iniciarSessao = async function(){
   }catch(e){}
 };
 </script>
+<script>
+// ============================================================
+//  COMPLEMENTO BLEND v4 (03/11/2026)
+//  Batata e hambúrguer bovino voltam para kg (igual à nota fiscal);
+//  a ficha usa o peso padrão (150 g / 160 g) e a diferença com a
+//  contagem mostra a variação do porcionamento.
+//  A Ana lança por UNIDADE (pacotinhos de batata / carnes retiradas)
+//  e o app converte para kg.
+// ============================================================
+const BLEND_V4_IDS=["p_carne_queijo", "p_classic_salad", "p_classic_bacon", "p_baconator", "p_supreme", "p_double_smash_bacon", "p_no_name", "p_catuburger", "p_o_picles", "p_gouda_boy", "p_australian", "p_supreme_pork", "p_blend_melted", "p_dr_cheese", "p_the_big_blend", "p_smash_classico", "p_the_ranch", "p_kids_blend", "p_oh_my_pork", "p_havaiano", "p_x_salada", "p_x_bacon", "p_x_egg", "p_x_burguer", "p_x_catupiry", "p_combo_kids", "p_rodizio_por_pessoa", "p_porcao_de_batata_frita_4", "p_batata_individual_150_g", "p_porcao_de_batata_melted", "p_pork_fries", "p_combo_batata_150_g_refri", "p_adicional_burger_e_queij"];
+const BLEND_V4_UN={
+  i5:     [['porção 150 g',1.83,40], ['kg',0.275,6,14.56,'BATATA CONGELADA 7MM']],
+  nakj3yd:[['un 160 g',2529,500],    ['kg',404.64,80,40.27,'HAMBÚRGUER BOVINO']],
+};
+function complementoBlendV4(){
+  const FLAG='ccBlendV4';
+  try{ if (localStorage.getItem(FLAG)) return false; }catch(e){ return false; }
+  let mudou=0;
+  Object.entries(BLEND_V4_UN).forEach(([id,[[u0,q0,m0],[u1,q1,m1,c1,n1]]])=>{
+    const i=S.insumos.find(x=>x.id===id); if(!i) return;
+    if (String(i.un).trim()!==u0 || Math.abs(_num(i.qtd)-q0)>1e-6 || Math.abs(_num(i.min)-m0)>1e-6) return;
+    i.un=u1; i.qtd=q1; i.min=m1; i.custo=c1; i.nome=n1; mudou++;
+  });
+  BLEND_V2_FICHAS.forEach(([id,ficha])=>{ if(!BLEND_V4_IDS.includes(id)) return; const p=S.produtos.find(x=>x.id===id); if(p){ p.ficha=ficha; mudou++; } });
+  try{ localStorage.setItem(FLAG,new Date().toISOString()); }catch(e){}
+  return mudou>0;
+}
+const _iniciarSessaoV3 = iniciarSessao;
+iniciarSessao = async function(){
+  await _iniciarSessaoV3();
+  try{
+    if (!SHEET_URL) return;
+    if (localStorage.getItem('ccBlendV3') && complementoBlendV4()) { await sheetSave(); render(); toast('Batata e carne em kg — lance por unidade no Estoque'); }
+  }catch(e){}
+};
+
+// ---------- Lançar por unidade (Estoque) ----------
+const BLEND_UNID={
+  i5:     {peso:0.15, un:'pacotinhos de 150 g', nome:'Batata (pacotinho porcionado)'},
+  nakj3yd:{peso:0.16, un:'carnes de 160 g',     nome:'Hambúrguer bovino (carne)'},
+};
+const _renderEstoqueOriginal = renderEstoque;
+renderEstoque = function(){
+  _renderEstoqueOriginal();
+  try{
+    const alvo = document.getElementById('regComp'); if(!alvo) return;
+    const compPanel = alvo.closest('.panel'); if(!compPanel) return;
+    const itens = Object.keys(BLEND_UNID).filter(id=>insumo(id));
+    if (!itens.length) return;
+    const fmt = n => (Math.round(n*1000)/1000).toLocaleString('pt-BR');
+    const div = document.createElement('div');
+    div.className='panel'; div.style.marginBottom='14px';
+    div.innerHTML = `<div class="ph"><h3>Lançar por unidade</h3></div>
+      <div class="field"><label>Item</label><select class="inp" id="bu_item">${itens.map(id=>`<option value="${id}">${esc(BLEND_UNID[id].nome)}</option>`).join('')}</select></div>
+      <div class="field"><label>O que aconteceu</label><select class="inp" id="bu_tipo">
+        <option value="ret">Retirada do freezer — tirei hoje</option>
+        <option value="cont">Contagem — tenho no estoque</option>
+        <option value="porc">Porcionei — novos pacotinhos (não muda o total)</option></select></div>
+      <div class="field"><label>Quantidade (unidades)</label><input class="inp mono" type="number" id="bu_qtd" placeholder="0"></div>
+      <div class="mini" id="bu_prev" style="margin:-4px 0 8px;min-height:16px"></div>
+      <button class="btn gold" id="bu_ok" style="width:100%">Lançar</button>
+      <div class="hint">O estoque fica em kg, igual à nota. Cada unidade vale o peso padrão da ficha (150 g / 160 g). A diferença entre o que foi comprado e o que você conta mostra a variação do porcionamento.</div>`;
+    compPanel.parentNode.insertBefore(div, compPanel);
+    const prev = ()=>{
+      const id=$('#bu_item').value, i=insumo(id), cfg=BLEND_UNID[id], n=+$('#bu_qtd').value||0, t=$('#bu_tipo').value;
+      if(!i){ $('#bu_prev').textContent=''; return; }
+      const atual=_num(i.qtd), kg=n*cfg.peso;
+      const novo = t==='ret' ? Math.max(0,atual-kg) : t==='cont' ? kg : atual;
+      $('#bu_prev').textContent = `Agora: ${fmt(atual)} kg (≈ ${Math.floor(atual/cfg.peso)} ${cfg.un})` + (n ? ` → fica ${fmt(novo)} kg (≈ ${Math.floor(novo/cfg.peso)})` : '');
+    };
+    ['bu_item','bu_tipo','bu_qtd'].forEach(id=>$('#'+id).addEventListener('input',prev)); prev();
+    $('#bu_ok').onclick = async ()=>{
+      const id=$('#bu_item').value, i=insumo(id), cfg=BLEND_UNID[id], n=+$('#bu_qtd').value, t=$('#bu_tipo').value;
+      if(!i || !(n>0)){ toast('Informe a quantidade',true); return; }
+      if (t==='porc'){ toast(`${n} ${cfg.un} = ${fmt(n*cfg.peso)} kg — total não muda`); return; }
+      const atual=_num(i.qtd), kg=n*cfg.peso;
+      i.qtd = Math.round((t==='ret' ? Math.max(0,atual-kg) : kg)*1000)/1000;
+      await sheetSave();
+      toast(t==='ret' ? `${i.nome}: −${n} (${fmt(kg)} kg) · fica ${fmt(i.qtd)} kg` : `${i.nome}: contagem ${n} = ${fmt(i.qtd)} kg`);
+      renderEstoque();
+    };
+  }catch(e){}
+};
+</script>
