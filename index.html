@@ -208,7 +208,7 @@ summary{cursor:pointer;font-size:12.5px;color:var(--muted);font-weight:600}
 //  - Metas e ponto de equilíbrio
 //  - Chave de acesso (a URL sozinha não abre mais os dados)
 // ============================================================
-const APP_VERSION = '2.2';
+const APP_VERSION = '2.3';
 let SHEET_URL = localStorage.getItem('sheetUrl') || 'https://script.google.com/macros/s/AKfycbyX44cbwOp7d5ksMQekI_5W_z_fxHf9ZLN3gygKCxctFONFQP0ikgvx3s9cZ0k9qzwgfQ/exec';
 
 // ------------------------------------------------------------
@@ -577,6 +577,36 @@ function syncedSet(m){
   }catch(e){}
 }
 
+/* v2.3 - alinhado ao Apps Script v3 (31/10).
+   O servidor bloqueia fechamento duplicado pela "impressao digital"
+   Data + Total de Vendas + 8 formas de pagamento e funde a copia no
+   registro que ja existe (outro ID). O app nao sabia disso: ficava com a
+   copia local de ID diferente, achava que o Sheets nao tinha gravado e
+   reenviava para sempre ("Confirmando... tentativa 4" -> "Sheets nao
+   confirmou"). Aqui o app aplica a MESMA regra: se o Sheets ja tem esse
+   fechamento com outro ID, a copia local e descartada (os dados dela ja
+   foram fundidos no servidor). */
+function fpFech(f){
+  const c = (f && f.conf) || {};
+  const cent = v => Math.round((+v || 0) * 100);
+  return [normData(f && f.data), cent(f && f.totalVendas)]
+    .concat(CONF_CAMPOS.map(cc => cent(c[cc.id]))).join('|');
+}
+function dedupeFechLocal(local, remote){
+  const remIds = new Set((remote || []).map(r => r.id));
+  const remFp = new Map();
+  (remote || []).forEach(r => { const fp = fpFech(r); if (!remFp.has(fp)) remFp.set(fp, r.id); });
+  const removidos = [];
+  const out = (local || []).filter(l => {
+    if (!isRegistroReal(l) || remIds.has(l.id)) return true;
+    const alvo = remFp.get(fpFech(l));
+    if (alvo) { removidos.push(l.id + '->' + alvo); return false; }
+    return true;
+  });
+  if (removidos.length) { try { console.info('[v2.3] copias locais ja salvas no Sheets com outro ID:', removidos.join(', ')); } catch(e){} }
+  return { out, removidos };
+}
+
 function mergeColl(local, remote){
   const sync = syncedGet();
   const map = new Map();
@@ -635,7 +665,8 @@ async function sheetLoad() {
         if (k === 'fechamentos') remote = remote.map(normFech);
         if (k === 'retiradas')   remote = remote.map(normRetirada);
         remote = remote.filter(x => isRegistroReal(x) && !del.has(x.id));
-        const local = (S[k]||[]).filter(x => isRegistroReal(x) && !del.has(x.id));
+        let local = (S[k]||[]).filter(x => isRegistroReal(x) && !del.has(x.id));
+        if (k === 'fechamentos') local = dedupeFechLocal(local, remote).out;
         const { merged, extras } = mergeColl(local, remote);
         S[k] = merged; pendentes += extras;
       });
@@ -677,7 +708,10 @@ async function verifySave(){
       setSyncStatus('err', 'Chave inválida — dados seguros no dispositivo');
       return;
     }
-    const remoteIds = new Set(((j.data&&j.data.fechamentos)||[]).map(x=>x.id));
+    const remoteFech = ((j.data&&j.data.fechamentos)||[]).map(normFech).filter(isRegistroReal);
+    const dd = dedupeFechLocal(S.fechamentos||[], remoteFech);
+    if (dd.removidos.length) { S.fechamentos = dd.out; await lsSave(); try { render(); } catch(e){} }
+    const remoteIds = new Set(remoteFech.map(x=>x.id));
     const faltando = (S.fechamentos||[]).filter(f => isRegistroReal(f) && !remoteIds.has(f.id));
     if (faltando.length === 0) {
       _saveRetries = 0;
