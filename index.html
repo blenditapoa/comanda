@@ -2537,3 +2537,209 @@ renderEstoque = function(){
   }catch(e){}
 };
 </script>
+<script>
+// ============================================================
+//  COMPLEMENTO BLEND v5 (07/11/2026) — ESTOQUE LIGADO À ROTINA
+//  O saldo vem da rotina Blend: vendas do Saipos, iFood e Multipedidos
+//  × ficha técnica de cada lanche (baixou o lanche, baixa cada insumo),
+//  + notas fiscais de entrada. A gerente só lança CONTAGEM NOVA e
+//  CORREÇÃO. Os lançamentos vão para a aba "Movimentos" (só acrescenta);
+//  o saldo calculado chega pela aba "Estoque App" (o app só lê).
+// ============================================================
+const EV_AREAS = ['Freezer','Câmara fria','Pães','Seco','Bebidas','Embalagens'];
+if (!KEYS.includes('movimentos')) KEYS.push('movimentos');
+S.movimentos = S.movimentos || [];
+S.estoque = S.estoque || [];
+function evLerCache(){ try{ const j = JSON.parse(localStorage.getItem('ccEstoqueApp') || 'null'); if (j && Array.isArray(j.rows)) S.estoque = j.rows; }catch(e){} }
+function evGravarCache(){ try{ localStorage.setItem('ccEstoqueApp', JSON.stringify({ t: new Date().toISOString(), rows: S.estoque })); }catch(e){} }
+evLerCache();
+
+// O load do Apps Script v4 já devolve "estoque". Lemos a resposta de cada load
+// (sem pedido extra) e guardamos o estoque como veio da planilha: não mescla, não reenvia.
+const _evFetch = window.fetch.bind(window);
+window.fetch = function(url, opt){
+  const p = _evFetch(url, opt);
+  try{
+    if (typeof url === 'string' && url.indexOf('action=load') > -1) {
+      p.then(r => r.clone().json()).then(j => {
+        if (j && j.ok && j.data && Array.isArray(j.data.estoque)) { S.estoque = j.data.estoque.filter(x => x && x.id); evGravarCache(); try{ if (tab === 'estoque' && !evModo && LOGADO()) renderEstoque(); }catch(e){} }
+      }).catch(() => {});
+    }
+  }catch(e){}
+  return p;
+};
+
+const evNum = v => { if (typeof v === 'number') return v; let t = String(v == null ? '' : v).trim(); if (t.indexOf(',') > -1) t = t.replace(/\./g, '').replace(',', '.'); const n = parseFloat(t); return isNaN(n) ? null : n; };
+const evFmt = (n, d) => n == null ? '—' : (Math.round(n * 100) / 100).toLocaleString('pt-BR', { maximumFractionDigits: d == null ? 2 : d });
+const evData = iso => { try{ const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit'}) + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } };
+const evDia = v => { if (!v) return ''; if (typeof v === 'string' && /^\d{2}\/\d{2}/.test(v)) return v.slice(0, 5); try{ const d = new Date(v); return isNaN(d) ? String(v) : d.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit'}); }catch(e){ return String(v); } };
+
+// lançamento mais recente da gerente para cada item, ainda não absorvido pela rotina
+function evPendentes(){
+  const out = {};
+  (S.movimentos || []).forEach(m => {
+    let it = m.itens; if (typeof it === 'string') { try{ it = JSON.parse(it); }catch(e){ it = {}; } }
+    Object.entries(it || {}).forEach(([id, q]) => {
+      const e = S.estoque.find(x => x.id === id);
+      const cont = e && e.contado_em ? new Date(e.contado_em).getTime() : 0;
+      const t = new Date(m.em).getTime();
+      if (t > cont + 1000 && (!out[id] || t > out[id].t)) out[id] = { t, q: evNum(q), m };
+    });
+  });
+  return out;
+}
+
+let evArea = '', evModo = '';
+function evStatus(e, pend){
+  if (pend) return ['ok', 'contado agora'];
+  if (e.saldo === '' || e.saldo == null) return ['', 'sem contagem'];
+  return e.status === 'crit' ? ['lo', 'abaixo do mínimo'] : e.status === 'warn' ? ['wa', 'perto do mínimo'] : ['ok', 'ok'];
+}
+
+renderEstoque = function(){
+  const rows = (S.estoque || []).slice().sort((a, b) => (EV_AREAS.indexOf(a.area) - EV_AREAS.indexOf(b.area)) || ((+a.ordem || 0) - (+b.ordem || 0)));
+  const pend = evPendentes();
+  const atual = rows.reduce((m, r) => r.atualizado && r.atualizado > m ? r.atualizado : m, '');
+  const crit = rows.filter(r => !pend[r.id] && r.status === 'crit');
+  const warn = rows.filter(r => !pend[r.id] && r.status === 'warn');
+  const semCont = rows.filter(r => !pend[r.id] && (r.saldo === '' || r.saldo == null));
+  const areas = EV_AREAS.filter(a => rows.some(r => r.area === a));
+  const lista = rows.filter(r => !evArea || r.area === evArea);
+  view.innerHTML = `
+  <style>
+    .ev-top{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+    .ev-chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px}
+    .ev-chips button{flex:none;background:var(--panel);border:1px solid var(--line2);color:var(--muted);padding:7px 12px;border-radius:999px;font-size:12.5px}
+    .ev-chips button.on{border-color:var(--gold);color:var(--gold)}
+    .ev-list{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+    .ev-it{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:2px 10px}
+    .ev-it b{font-size:14px} .ev-it .q{font-family:'Space Mono',monospace;font-size:18px;text-align:right}
+    .ev-it .s{color:var(--muted);font-size:11.5px} .ev-it .r{text-align:right}
+    .ev-it.lo{border-color:var(--red)} .ev-it.wa{border-color:var(--gold)}
+    .tag.wa{background:rgba(224,168,62,.15);color:var(--gold)}
+    .ev-form{display:grid;gap:8px}
+    .ev-row{display:grid;grid-template-columns:1fr 110px;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+    .ev-row label{font-size:13.5px} .ev-row small{display:block;color:var(--muted2);font-size:11px}
+    .ev-row input{text-align:right;font-size:16px}
+    .ev-sum{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+    .ev-sum span{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:12px;color:var(--muted)}
+    .ev-sum b{color:var(--cream)}
+    @media (max-width:640px){ .ev-list{grid-template-columns:1fr} .ev-top .btn{flex:1} }
+  </style>
+  <div class="head"><div><div class="ey">Insumos</div><h1>Estoque</h1>
+  <p>O saldo baixa sozinho: cada venda do Saipos, iFood e Multipedidos tira da ficha técnica os insumos do lanche, e as notas de entrada somam.
+  Você só lança <b>contagem nova</b> ou <b>correção</b>.</p>
+  <p class="mini">${atual ? 'Saldo calculado pela rotina em ' + evData(atual) : 'Aguardando o primeiro cálculo da rotina.'}</p></div></div>
+  ${evModo ? evFormHtml(rows, pend) : `
+  <div class="ev-top">
+    <button class="btn gold" id="ev_cont">📋 Contagem nova</button>
+    <button class="btn ghost" id="ev_corr">✏️ Correção</button>
+    <button class="btn ghost sm" id="ev_cad" style="margin-left:auto">Cadastro de insumos e custos</button>
+  </div>
+  ${crit.length ? `<div class="alert"><span>⚠️</span><div><b>${crit.length} ${crit.length > 1 ? 'itens abaixo' : 'item abaixo'} do mínimo:</b> ${crit.map(r => esc(r.nome)).join(', ')}</div></div>` : ''}
+  <div class="ev-sum"><span><b>${rows.length}</b> itens</span><span><b>${crit.length}</b> abaixo do mínimo</span><span><b>${warn.length}</b> perto do mínimo</span><span><b>${semCont.length}</b> sem contagem</span>${Object.keys(pend).length ? `<span><b>${Object.keys(pend).length}</b> contados agora (a rotina confere no próximo cálculo)</span>` : ''}</div>
+  <div class="ev-chips"><button data-area="" class="${!evArea ? 'on' : ''}">Todos</button>${areas.map(a => `<button data-area="${esc(a)}" class="${evArea === a ? 'on' : ''}">${esc(a)}</button>`).join('')}</div>
+  <div class="ev-list">${lista.map(r => {
+    const p = pend[r.id]; const [cls, txt] = evStatus(r, p);
+    const saldo = p ? p.q : evNum(r.saldo);
+    return `<div class="ev-it ${p ? '' : cls}">
+      <b>${esc(r.nome)}</b><div class="q">${evFmt(saldo)}</div>
+      <div class="s">${esc(r.un || '')}${r.minimo !== '' && r.minimo != null ? ' · mín. ' + evFmt(evNum(r.minimo)) : ''}</div>
+      <div class="s r">${p ? 'contado ' + evData(p.m.em) : r.dura_ate ? 'dura até ' + evDia(r.dura_ate) : ''}</div>
+      <div><span class="tag ${cls}">${txt}</span></div>
+      <div class="s r">${!p && r.contado_em ? 'última contagem ' + evDia(r.contado_em) : ''}</div>
+    </div>`; }).join('') || '<div class="empty">Nenhum item ainda — a rotina publica a lista no próximo cálculo.</div>'}</div>
+  ${evUltimosHtml()}`}`;
+  if (evModo) { evFormBind(rows); return; }
+  $('#ev_cont').onclick = () => { evModo = 'contagem'; renderEstoque(); window.scrollTo(0, 0); };
+  $('#ev_corr').onclick = () => { evModo = 'correcao'; renderEstoque(); window.scrollTo(0, 0); };
+  $('#ev_cad').onclick = () => { evCadastro(); };
+  document.querySelectorAll('.ev-chips button').forEach(b => b.onclick = () => { evArea = b.dataset.area; renderEstoque(); });
+};
+
+function evUltimosHtml(){
+  const ms = (S.movimentos || []).slice().sort((a, b) => String(b.em).localeCompare(String(a.em))).slice(0, 8);
+  if (!ms.length) return '';
+  const nome = id => { const e = S.estoque.find(x => x.id === id); return e ? e.nome : id; };
+  return `<div class="panel" style="margin-top:16px"><div class="ph"><h3>Últimos lançamentos</h3></div>
+    ${ms.map(m => { let it = m.itens; if (typeof it === 'string') { try{ it = JSON.parse(it); }catch(e){ it = {}; } }
+      const n = Object.keys(it || {}).length;
+      return `<div style="padding:8px 0;border-bottom:1px solid var(--line);font-size:13px"><b>${m.tipo === 'correcao' ? 'Correção' : 'Contagem'}</b> · ${evData(m.em)} · ${esc(m.por || '')}
+        <div class="mini">${m.tipo === 'correcao' ? Object.entries(it || {}).map(([id, q]) => esc(nome(id)) + ' = ' + evFmt(evNum(q))).join(', ') + (m.motivo ? ' — ' + esc(m.motivo) : '') : n + ' itens contados'}${m.obs ? ' · ' + esc(m.obs) : ''}</div></div>`; }).join('')}</div>`;
+}
+
+function evFormHtml(rows, pend){
+  if (evModo === 'correcao') return `
+  <div class="panel ev-form" style="max-width:560px">
+    <div class="ph"><h3>Correção de estoque</h3><button class="btn ghost sm" id="ev_cancel">Voltar</button></div>
+    <p class="mini" style="margin:0">Use quando o saldo de um item está errado: perda, vencido, quebra, erro na contagem ou mercadoria que chegou sem nota. Informe quanto tem <b>agora</b>.</p>
+    <div class="field"><label>Item</label><select class="inp" id="ev_item">${rows.map(r => `<option value="${esc(r.id)}">${esc(r.nome)} (${esc(r.un || '')})</option>`).join('')}</select></div>
+    <div class="mini" id="ev_prev"></div>
+    <div class="field"><label>Quantidade certa agora</label><input class="inp mono" type="number" inputmode="decimal" step="any" id="ev_qtd" placeholder="0"></div>
+    <div class="field"><label>Motivo</label><select class="inp" id="ev_mot">
+      <option>Perda / vencido / quebra</option><option>Erro na contagem anterior</option><option>Chegou mercadoria sem nota</option><option>Usado fora da venda (funcionário, teste)</option><option>Outro</option></select></div>
+    <div class="field"><label>Observação (opcional)</label><input class="inp" id="ev_obs" placeholder="ex.: 2 pacotes descongelaram"></div>
+    <div class="field"><label>Quem está lançando</label><input class="inp" id="ev_por" value="${esc(evQuem())}"></div>
+    <button class="btn gold" id="ev_ok">Salvar correção</button>
+  </div>`;
+  const areas = EV_AREAS.filter(a => rows.some(r => r.area === a));
+  const area = evArea || areas[0] || '';
+  return `
+  <div class="panel ev-form" style="max-width:640px">
+    <div class="ph"><h3>Contagem nova</h3><button class="btn ghost sm" id="ev_cancel">Voltar</button></div>
+    <p class="mini" style="margin:0">Conte o que tem fisicamente e digite. Deixe em branco o que não contou. Pode contar uma área por vez.</p>
+    <div class="ev-chips">${areas.map(a => `<button data-area="${esc(a)}" class="${area === a ? 'on' : ''}">${esc(a)}</button>`).join('')}</div>
+    <div id="ev_rows">${rows.filter(r => r.area === area).map(r => `<div class="ev-row"><label for="evq_${esc(r.id)}">${esc(r.nome)}<small>${esc(r.un || '')}${r.saldo !== '' && r.saldo != null ? ' · sistema: ' + evFmt(evNum(r.saldo)) : ''}</small></label>
+      <input class="inp mono" type="number" inputmode="decimal" step="any" min="0" id="evq_${esc(r.id)}" data-id="${esc(r.id)}" value="${evRascunho[r.id] != null ? evRascunho[r.id] : ''}"></div>`).join('')}</div>
+    <div class="field"><label>Quem contou</label><input class="inp" id="ev_por" value="${esc(evQuem())}"></div>
+    <div class="field"><label>Observação (opcional)</label><input class="inp" id="ev_obs"></div>
+    <button class="btn gold" id="ev_ok">Salvar contagem (<span id="ev_n">${Object.keys(evRascunho).length}</span> itens)</button>
+  </div>`;
+}
+let evRascunho = {};
+function evQuem(){ try{ return localStorage.getItem('ccEvQuem') || (typeof SESSAO !== 'undefined' && SESSAO && SESSAO.nome) || 'Ana'; }catch(e){ return 'Ana'; } }
+
+function evFormBind(rows){
+  $('#ev_cancel').onclick = () => { evModo = ''; evRascunho = {}; renderEstoque(); };
+  if (evModo === 'correcao') {
+    const prev = () => { const r = rows.find(x => x.id === $('#ev_item').value); $('#ev_prev').textContent = r ? 'No sistema: ' + evFmt(evNum(r.saldo)) + ' ' + (r.un || '') : ''; };
+    $('#ev_item').onchange = prev; prev();
+    $('#ev_ok').onclick = async () => {
+      const id = $('#ev_item').value, q = evNum($('#ev_qtd').value);
+      if (!id || q == null || q < 0) { toast('Informe a quantidade certa', true); return; }
+      await evSalvar({ tipo: 'correcao', itens: { [id]: q }, motivo: $('#ev_mot').value, obs: $('#ev_obs').value.trim(), por: $('#ev_por').value.trim() });
+    };
+    return;
+  }
+  document.querySelectorAll('.ev-form .ev-chips button').forEach(b => b.onclick = () => { evGuardar(); evArea = b.dataset.area; renderEstoque(); });
+  document.querySelectorAll('#ev_rows input').forEach(i => i.addEventListener('input', () => { evGuardar(); $('#ev_n').textContent = Object.keys(evRascunho).length; }));
+  $('#ev_ok').onclick = async () => {
+    evGuardar();
+    if (!Object.keys(evRascunho).length) { toast('Digite pelo menos um item', true); return; }
+    await evSalvar({ tipo: 'contagem', itens: Object.assign({}, evRascunho), motivo: '', obs: $('#ev_obs').value.trim(), por: $('#ev_por').value.trim() });
+  };
+}
+function evGuardar(){
+  document.querySelectorAll('#ev_rows input').forEach(i => { const v = evNum(i.value); if (i.value.trim() === '' || v == null || v < 0) delete evRascunho[i.dataset.id]; else evRascunho[i.dataset.id] = v; });
+}
+async function evSalvar(m){
+  try{ if (m.por) localStorage.setItem('ccEvQuem', m.por); }catch(e){}
+  // mesma ordem de campos da aba Movimentos (id, em, tipo, por, itens, motivo, obs, aparelho)
+  const mov = { id: 'mv' + Date.now().toString(36) + uid().slice(0, 3), em: new Date().toISOString(), tipo: m.tipo, por: m.por || '', itens: m.itens, motivo: m.motivo || '', obs: m.obs || '', aparelho: (navigator.userAgent.match(/\(([^)]+)\)/) || [, ''])[1].slice(0, 40) };
+  S.movimentos.push(mov);
+  await sheetSave();
+  const n = Object.keys(m.itens).length;
+  toast(m.tipo === 'correcao' ? 'Correção salva' : 'Contagem salva: ' + n + (n > 1 ? ' itens' : ' item'));
+  evModo = ''; evRascunho = {}; renderEstoque();
+}
+
+// cadastro antigo (custos usados no CMV do fechamento) continua acessível
+function evCadastro(){
+  _renderEstoqueOriginal();
+  try{
+    const p = view.querySelector('.head p'); if (p) p.textContent = 'Cadastro de insumos e custo unitário (usado no CMV do fechamento). A quantidade daqui não é o estoque: o estoque real fica na tela anterior, calculado pelas vendas.';
+    const h = view.querySelector('.head'); if (h) { const b = document.createElement('button'); b.className = 'btn ghost sm'; b.textContent = '← Voltar ao estoque'; b.onclick = () => renderEstoque(); h.appendChild(b); }
+    const al = view.querySelector('.alert'); if (al) al.remove();
+  }catch(e){}
+}
+</script>
